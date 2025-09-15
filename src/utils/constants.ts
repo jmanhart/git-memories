@@ -43,3 +43,79 @@ export const EMOJIS = {
   YEAR: "📅",
   SPINNER: "⏳",
 } as const;
+
+/**
+ * Centralized UI Strings
+ *
+ * All user-facing text strings used throughout the application.
+ * This makes it easy to maintain consistent messaging and update text in one place.
+ */
+export const UI_STRINGS = {
+  // Spinner messages
+  FETCHING: {
+    START: "Fetching your contributions...",
+    YEAR_PROGRESS: (year: number) => `Fetching your contributions... (${year})`,
+    SUCCESS: "Contributions fetched!",
+    FAILED: "Failed to fetch contributions",
+  },
+
+  // Authentication messages
+  AUTH: {
+    INTRO: "🔐 GitHub Authentication",
+    LINK_ACCOUNT: "Link your GitHub account to get started?",
+    CANCELLED: "Authentication cancelled. Goodbye! 👋",
+    SETTING_UP: "Setting up authentication...",
+    OPENING_BROWSER: "Opening GitHub in your browser...",
+    SUCCESS: "Authentication successful! ✅",
+    FAILED: "Authentication failed",
+    OAUTH_NOT_CONFIGURED: "OAuth not configured",
+    OAUTH_FALLBACK:
+      "⚠️  OAuth App not configured. Falling back to manual token setup.\n",
+    FALLBACK_MANUAL: "💡 Falling back to manual token setup...\n",
+    GITHUB_CLI_START: "Using GitHub CLI authentication...",
+    GITHUB_CLI_SUCCESS: "GitHub CLI authentication successful! ✅",
+    GITHUB_CLI_FAILED: "GitHub CLI authentication failed",
+    FALLBACK_TOKEN: "Falling back to manual token setup...\n",
+  },
+
+  // Mock data messages
+  MOCK: {
+    TEST_MODE: "Running in test mode with mock data...",
+    AUTH_SETUP_MODE: "Running in auth setup scenario with mock data...",
+    NO_ENTRIES_MODE: "Running in no entries scenario with mock data...",
+    GENERATING: "Generating mock contributions...",
+    GENERATED: "Mock contributions generated!",
+  },
+
+  // Mode descriptions
+  MODES: {
+    TEST: "test mode",
+    AUTH_SETUP: "auth setup scenario",
+    NO_ENTRIES: "no entries scenario",
+  },
+
+  // Mode suffixes for outro
+  MODE_SUFFIXES: {
+    TEST: "(Test Mode)",
+    AUTH_SETUP: "(Auth Setup Scenario)",
+    NO_ENTRIES: "(No Entries Scenario)",
+  },
+
+  // Error messages
+  ERRORS: {
+    GENERIC: "Unknown error",
+    FETCH_FAILED: "Failed to fetch contributions",
+  },
+
+  // Outro messages
+  OUTRO: {
+    SUCCESS: "Thanks for the memories! 🎉",
+  },
+
+  // Example: Easy to add new strings
+  // NEW_FEATURE: {
+  //   WELCOME: "Welcome to the new feature!",
+  //   LOADING: "Loading new feature...",
+  //   SUCCESS: "New feature loaded successfully!",
+  // },
+} as const;

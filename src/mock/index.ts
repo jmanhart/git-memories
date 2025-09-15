@@ -8,6 +8,7 @@ import { Contribution, GitHubCommit, GitHubPullRequest } from "../types";
 import { getCurrentDate } from "../utils/date";
 import { COMMIT_MESSAGES, PR_TITLES, REPO_NAMES, PR_STATES } from "./data";
 import { spinner } from "@clack/prompts";
+import { UI_STRINGS } from "../utils/constants";
 
 /**
  * Mock scenario types
@@ -48,7 +49,7 @@ async function generateDefaultMockData(
   const contributions: Contribution[] = [];
   const s = spinner();
 
-  s.start("Fetching your contributions...");
+  s.start(UI_STRINGS.FETCHING.START);
 
   // Generate mock data from 2016 to current year (more realistic range)
   const startYear = 2016;
@@ -61,7 +62,7 @@ async function generateDefaultMockData(
     const year = years[i];
 
     // Update spinner to show current year being processed
-    s.message(`Fetching your contributions... (${year})`);
+    s.message(`Fetching your contributions for this day in ${year}`);
 
     // Simulate realistic delay (faster for recent years, slower for older years)
     const delay =
@@ -96,7 +97,7 @@ async function generateDefaultMockData(
     }
   }
 
-  s.stop("Contributions fetched!");
+  s.stop(UI_STRINGS.FETCHING.SUCCESS);
   return contributions;
 }
 
@@ -112,7 +113,7 @@ async function generateAuthSetupMockData(
   const contributions: Contribution[] = [];
   const s = spinner();
 
-  s.start("Fetching your contributions...");
+  s.start(UI_STRINGS.FETCHING.START);
 
   // Simulate checking a few years back (even for new users)
   const years = [currentYear, currentYear - 1, currentYear - 2];
@@ -121,7 +122,7 @@ async function generateAuthSetupMockData(
     const year = years[i];
 
     // Update spinner to show current year being processed
-    s.message(`Fetching your contributions... (${year})`);
+    s.message(UI_STRINGS.FETCHING.YEAR_PROGRESS(year));
 
     // Simulate delay
     await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -177,7 +178,7 @@ async function generateAuthSetupMockData(
     }
   }
 
-  s.stop("Contributions fetched!");
+  s.stop(UI_STRINGS.FETCHING.SUCCESS);
   return contributions;
 }
 
@@ -198,7 +199,7 @@ async function generateNoEntriesMockData(): Promise<Contribution[]> {
     await new Promise((resolve) => setTimeout(resolve, 800));
   }
 
-  s.stop("Contributions fetched!");
+  s.stop(UI_STRINGS.FETCHING.SUCCESS);
   return [];
 }
 

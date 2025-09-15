@@ -6,7 +6,7 @@ import { GitHubAPI } from "./github";
 import { formatContributions } from "./formatters";
 import { generateMockContributions, MockScenario } from "./mock";
 import { getCurrentDate } from "./utils/date";
-import { EMOJIS } from "./utils/constants";
+import { EMOJIS, UI_STRINGS } from "./utils/constants";
 
 // Check for help command
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -57,14 +57,18 @@ async function main() {
     if (isTestMode || isAuthSetupMode || isNoEntriesMode) {
       // Test mode - use mock data
       const modeDescription = isAuthSetupMode
-        ? "auth setup scenario"
+        ? UI_STRINGS.MODES.AUTH_SETUP
         : isNoEntriesMode
-        ? "no entries scenario"
-        : "test mode";
+        ? UI_STRINGS.MODES.NO_ENTRIES
+        : UI_STRINGS.MODES.TEST;
 
-      console.log(
-        `${EMOJIS.TEST} Running in ${modeDescription} with mock data...\n`
-      );
+      const modeMessage = isAuthSetupMode
+        ? UI_STRINGS.MOCK.AUTH_SETUP_MODE
+        : isNoEntriesMode
+        ? UI_STRINGS.MOCK.NO_ENTRIES_MODE
+        : UI_STRINGS.MOCK.TEST_MODE;
+
+      console.log(`${EMOJIS.TEST} ${modeMessage}\n`);
 
       // Get today's date
       const { month, day } = getCurrentDate();
@@ -77,12 +81,12 @@ async function main() {
       console.log(formatted);
 
       const modeSuffix = isAuthSetupMode
-        ? "(Auth Setup Scenario)"
+        ? UI_STRINGS.MODE_SUFFIXES.AUTH_SETUP
         : isNoEntriesMode
-        ? "(No Entries Scenario)"
-        : "(Test Mode)";
+        ? UI_STRINGS.MODE_SUFFIXES.NO_ENTRIES
+        : UI_STRINGS.MODE_SUFFIXES.TEST;
 
-      outro(`Thanks for the memories! 🎉 ${modeSuffix}`);
+      outro(`${UI_STRINGS.OUTRO.SUCCESS} ${modeSuffix}`);
       return;
     }
 
@@ -121,7 +125,7 @@ async function main() {
       process.exit(1);
     }
 
-    outro("Thanks for the memories! 🎉");
+    outro(UI_STRINGS.OUTRO.SUCCESS);
   } catch (error) {
     console.error(
       "❌ Error:",

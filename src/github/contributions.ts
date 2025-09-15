@@ -11,6 +11,7 @@ import { CommitAPI } from "./commits";
 import { PullRequestAPI } from "./pull-requests";
 import { Contribution } from "../types";
 import { spinner } from "@clack/prompts";
+import { UI_STRINGS } from "../utils/constants";
 
 /**
  * Contributions API handler
@@ -50,7 +51,7 @@ export class ContributionsAPI {
     const contributions: Contribution[] = [];
     const s = spinner();
 
-    s.start("Fetching your contributions...");
+    s.start(UI_STRINGS.FETCHING.START);
 
     try {
       // Strategy 1: Get user's repositories with creation/update dates (lightweight)
@@ -77,7 +78,7 @@ export class ContributionsAPI {
 
         if (activeRepos.length > 0) {
           // Update spinner to show current year being processed
-          s.message(`Fetching your contributions... (${year})`);
+          s.message(UI_STRINGS.FETCHING.YEAR_PROGRESS(parseInt(year)));
 
           try {
             const yearContributions =
@@ -101,10 +102,10 @@ export class ContributionsAPI {
         }
       }
 
-      s.stop("Contributions fetched!");
+      s.stop(UI_STRINGS.FETCHING.SUCCESS);
       return contributions;
     } catch (error) {
-      s.stop("Failed to fetch contributions");
+      s.stop(UI_STRINGS.FETCHING.FAILED);
       throw error;
     }
   }
