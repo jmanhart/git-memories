@@ -1,86 +1,101 @@
 #!/usr/bin/env node
 
-import { intro, outro, spinner, text, isCancel } from "@clack/prompts";
-import { config } from "dotenv";
-import { GitHubAPI } from "./github-api";
-import { formatContributions } from "./formatter";
+import { intro, outro, spinner } from "@clack/prompts";
+import { GitHubAuth } from "./auth";
+import { GitHubAPI } from "./github";
+import { formatContributions } from "./formatters";
+import { generateMockContributions } from "./mock";
+import { getCurrentDate } from "./utils/date";
+import { EMOJIS } from "./utils/constants";
 
-// Load environment variables
-config();
+// Check for logout command
+if (process.argv.includes("--logout")) {
+  const auth = new GitHubAuth();
+  auth.logout();
+  process.exit(0);
+}
+
+// Check for test mode
+const isTestMode = process.argv.includes("--test");
 
 async function main() {
   // Show intro
-  intro("🌱 git-memories");
-
-  // Check for GitHub token
-  const token = process.env.GITHUB_TOKEN;
-  if (!token) {
-    console.log(
-      "❌ No GitHub token found. Please set GITHUB_TOKEN in your .env file"
-    );
-    console.log("   Get a token from: https://github.com/settings/tokens");
-    process.exit(1);
-  }
-
-  // Get username
-  const username = await text({
-    message: "What's your GitHub username?",
-    placeholder: "octocat",
-    validate: (value) => {
-      if (!value || value.trim().length === 0) {
-        return "Username is required";
-      }
-      return;
-    },
-  });
-
-  if (isCancel(username)) {
-    outro("Goodbye! 👋");
-    process.exit(0);
-  }
-
-  // Initialize GitHub API
-  const github = new GitHubAPI(token);
-
-  // Show loading spinner
-  const s = spinner();
-  s.start("Fetching your contributions...");
+  intro(`${EMOJIS.INTRO} git-memories`);
 
   try {
-    // Get today's date
-    const today = new Date();
-    const currentYear = today.getFullYear();
-    const month = today.getMonth() + 1; // 0-indexed
-    const day = today.getDate();
+    if (isTestMode) {
+      // Test mode - use mock data
+      console.log(`${EMOJIS.TEST} Running in test mode with mock data...\n`);
 
-    // Get user's account creation date to determine how far back to look
-    const user = await github.getUser(username);
-    const accountCreatedYear = new Date(user.createdAt).getFullYear();
+      const s = spinner();
+      s.start("Generating mock contributions...");
 
-    // Fetch contributions for this day across all years
-    const contributions = await github.getContributionsOnDate(
-      username,
-      month,
-      day,
-      accountCreatedYear,
-      currentYear
-    );
+      // Get today's date
+      const { month, day } = getCurrentDate();
 
-    s.stop("Contributions fetched!");
+      // Generate mock contributions
+      const contributions = generateMockContributions();
 
-    // Format and display results
-    const formatted = formatContributions(contributions, month, day);
-    console.log(formatted);
+      s.stop("Mock contributions generated!");
+
+      // Format and display results
+      const formatted = formatContributions(contributions, month, day);
+      console.log(formatted);
+
+      outro("Thanks for the memories! 🎉 (Test Mode)");
+      return;
+    }
+
+    // Normal mode - authenticate with GitHub
+    const auth = new GitHubAuth();
+    const { token, username } = await auth.authenticate();
+
+    // Initialize GitHub API
+    const github = new GitHubAPI(token);
+
+    // Show loading spinner
+    const s = spinner();
+    s.start("Fetching your contributions...");
+
+    try {
+      // Get today's date
+      const { year: currentYear, month, day } = getCurrentDate();
+
+      // Get user's account creation date to determine how far back to look
+      const user = await github.getUser(username);
+      const accountCreatedYear = new Date(user.createdAt).getFullYear();
+
+      // Fetch contributions for this day across all years
+      const contributions = await github.getContributionsOnDate(
+        username,
+        month,
+        day,
+        accountCreatedYear,
+        currentYear
+      );
+
+      s.stop("Contributions fetched!");
+
+      // Format and display results
+      const formatted = formatContributions(contributions, month, day);
+      console.log(formatted);
+    } catch (error) {
+      s.stop("Failed to fetch contributions");
+      console.error(
+        `${EMOJIS.ERROR} Error:`,
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      process.exit(1);
+    }
+
+    outro("Thanks for the memories! 🎉");
   } catch (error) {
-    s.stop("Failed to fetch contributions");
     console.error(
       "❌ Error:",
       error instanceof Error ? error.message : "Unknown error"
     );
     process.exit(1);
   }
-
-  outro("Thanks for the memories! 🎉");
 }
 
 // Handle unhandled promise rejections
