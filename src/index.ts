@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
 import { intro, outro, spinner } from "@clack/prompts";
-import { GitHubAuth } from "./auth/index.js";
-import { GitHubAPI } from "./github/index.js";
-import { formatContributions } from "./formatters/index.js";
-import { generateMockContributions, MockScenario } from "./mock/index.js";
-import { getCurrentDate } from "./utils/date.js";
-import { EMOJIS, UI_STRINGS } from "./utils/constants.js";
+import { GitHubAuth } from "./auth";
+import { GitHubAPI } from "./github";
+import { formatContributions } from "./formatters";
+import { generateMockContributions, MockScenario } from "./mock";
+import { getCurrentDate } from "./utils/date";
+import { EMOJIS, UI_STRINGS } from "./utils/constants";
 
 // Check for help command
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
