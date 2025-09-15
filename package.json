@@ -23,15 +23,15 @@
     "history",
     "nostalgia"
   ],
-  "author": "Your Name",
+  "author": "John Manhart",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/git-memories.git"
+    "url": "https://github.com/jmanhart/git-memories"
   },
-  "homepage": "https://github.com/yourusername/git-memories#readme",
+  "homepage": "https://github.com/jmanhart/git-memories",
   "bugs": {
-    "url": "https://github.com/yourusername/git-memories/issues"
+    "url": "https://github.com/jmanhart/git-memories"
   },
   "dependencies": {
     "@clack/prompts": "^0.7.0",

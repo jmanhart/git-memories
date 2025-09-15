@@ -18,23 +18,10 @@ git-memories         # Use your real GitHub data
 
 ## Setup
 
-**Option 1: GitHub CLI (Recommended)**
-
 ```bash
 gh auth login
 git-memories
 ```
-
-**Option 2: Manual Token**
-
-Create token at https://github.com/settings/tokens with `repo` scope, then run `git-memories`
-
-**Option 3: OAuth (Advanced)**
-
-1. Create GitHub OAuth app at https://github.com/settings/applications/new
-2. Set callback URL to: `http://localhost:3000/callback`
-3. Copy `.env.example` to `.env` and add your credentials
-4. Run `git-memories`
 
 ## Commands
 
