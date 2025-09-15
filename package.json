@@ -1,6 +1,6 @@
 {
   "name": "git-memories",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A fun CLI tool to see your GitHub contributions on this day throughout the years",
   "main": "dist/index.js",
   "bin": {
