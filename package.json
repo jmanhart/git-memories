@@ -7,7 +7,7 @@
     "git-memories": "dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "npx tsc --module CommonJS --target ES2022 --esModuleInterop --outDir dist src/index.ts",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "prepare": "npm run build"

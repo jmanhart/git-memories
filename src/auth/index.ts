@@ -5,12 +5,12 @@
  */
 
 import { intro, outro, spinner, confirm, isCancel } from "@clack/prompts";
-import { AuthResult, StoredToken } from "../types";
-import { TokenStorage } from "./storage";
-import { OAuthAuth } from "./oauth";
-import { GitHubCLIAuth } from "./github-cli";
-import { ManualTokenAuth } from "./manual-token";
-import { AUTH_CONFIG } from "../utils/constants";
+import { AuthResult, StoredToken } from "../types/index.js";
+import { TokenStorage } from "./storage.js";
+import { OAuthAuth } from "./oauth.js";
+import { GitHubCLIAuth } from "./github-cli.js";
+import { ManualTokenAuth } from "./manual-token.js";
+import { AUTH_CONFIG } from "../utils/constants.js";
 
 /**
  * Main authentication manager
