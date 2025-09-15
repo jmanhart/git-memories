@@ -1,0 +1,21 @@
+# Source maps
+dist/**/*.map
+
+# Development files
+src/
+tsconfig.json
+.env
+.env.backup
+*.log
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

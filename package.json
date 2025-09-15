@@ -18,10 +18,21 @@
     "cli",
     "contributions",
     "memories",
-    "developer-tools"
+    "developer-tools",
+    "time-travel",
+    "history",
+    "nostalgia"
   ],
   "author": "Your Name",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/git-memories.git"
+  },
+  "homepage": "https://github.com/yourusername/git-memories#readme",
+  "bugs": {
+    "url": "https://github.com/yourusername/git-memories/issues"
+  },
   "dependencies": {
     "@clack/prompts": "^0.7.0",
     "node-fetch": "^3.3.2",

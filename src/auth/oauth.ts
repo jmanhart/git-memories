@@ -21,11 +21,9 @@ export class OAuthAuth {
 
   constructor() {
     this.config = {
-      clientId: process.env.GITHUB_CLIENT_ID || "Ov23liL0b7OAw3hkR35A",
-      clientSecret:
-        process.env.GITHUB_CLIENT_SECRET ||
-        "1cddc634d0d0dc8eac88b8f1c3c63ac68dce798f",
-      redirectUri: `http://localhost:${AUTH_CONFIG.CALLBACK_PORT}/callback`,
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      redirectUri: `http://localhost:${AUTH_CONFIG.CALLBACK_PORT}/callback`, // Will be updated dynamically
     };
   }
 
@@ -33,10 +31,7 @@ export class OAuthAuth {
    * Check if OAuth is properly configured
    */
   isConfigured(): boolean {
-    return (
-      this.config.clientSecret !== "your_client_secret_here" &&
-      this.config.clientId !== "your_client_id_here"
-    );
+    return !!(this.config.clientId && this.config.clientSecret);
   }
 
   /**
@@ -46,11 +41,14 @@ export class OAuthAuth {
     // Generate state parameter for security
     const state = Math.random().toString(36).substring(7);
 
-    // Create OAuth URL
-    const authUrl = this.createAuthUrl(state);
+    // Start local server to handle callback (this will set the dynamic port)
+    const { app, server, port } = await this.startCallbackServer(state);
 
-    // Start local server to handle callback
-    const { app, server } = await this.startCallbackServer(state);
+    // Update redirect URI with the actual port
+    this.config.redirectUri = `http://localhost:${port}/callback`;
+
+    // Create OAuth URL with the correct port
+    const authUrl = this.createAuthUrl(state);
 
     // Set up callback handler
     this.setupCallbackHandler(app, server, state);
@@ -68,6 +66,10 @@ export class OAuthAuth {
    * Create GitHub OAuth authorization URL
    */
   private createAuthUrl(state: string): string {
+    if (!this.config.clientId) {
+      throw new Error("GitHub OAuth client ID is not configured");
+    }
+
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       redirect_uri: this.config.redirectUri,
@@ -83,12 +85,24 @@ export class OAuthAuth {
    */
   private async startCallbackServer(
     state: string
-  ): Promise<{ app: express.Application; server: any }> {
+  ): Promise<{ app: express.Application; server: any; port: number }> {
     const app = express();
 
-    return new Promise((resolve) => {
-      const server = app.listen(AUTH_CONFIG.CALLBACK_PORT, () => {
-        resolve({ app, server });
+    return new Promise((resolve, reject) => {
+      const server = app.listen(0, () => {
+        // 0 = let OS choose available port
+        const address = server.address();
+        if (address && typeof address === "object") {
+          const port = address.port;
+          console.log(`🌐 OAuth callback server running on port ${port}`);
+          resolve({ app, server, port });
+        } else {
+          reject(new Error("Failed to get server port"));
+        }
+      });
+
+      server.on("error", (error) => {
+        reject(new Error(`Failed to start callback server: ${error.message}`));
       });
     });
   }
@@ -166,6 +180,10 @@ export class OAuthAuth {
    * Exchange OAuth code for access token
    */
   private async exchangeCodeForToken(code: string): Promise<AuthResult> {
+    if (!this.config.clientId || !this.config.clientSecret) {
+      throw new Error("GitHub OAuth credentials are not configured");
+    }
+
     const requestBody = {
       client_id: this.config.clientId,
       client_secret: this.config.clientSecret,

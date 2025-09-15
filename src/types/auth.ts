@@ -16,8 +16,8 @@ export interface AuthResult {
 }
 
 export interface OAuthConfig {
-  clientId: string;
-  clientSecret: string;
+  clientId: string | undefined;
+  clientSecret: string | undefined;
   redirectUri: string;
 }
 
