@@ -9,12 +9,39 @@ import { getCurrentDate } from "../utils/date";
 import { COMMIT_MESSAGES, PR_TITLES, REPO_NAMES, PR_STATES } from "./data";
 
 /**
+ * Mock scenario types
+ */
+export type MockScenario = "default" | "auth-setup" | "no-entries";
+
+/**
  * Generate mock contributions for testing
  *
  * Creates realistic mock data spanning multiple years with random contributions
  */
-export function generateMockContributions(): Contribution[] {
+export function generateMockContributions(
+  scenario: MockScenario = "default"
+): Contribution[] {
   const { year: currentYear, month, day } = getCurrentDate();
+
+  switch (scenario) {
+    case "auth-setup":
+      return generateAuthSetupMockData(currentYear, month, day);
+    case "no-entries":
+      return generateNoEntriesMockData();
+    case "default":
+    default:
+      return generateDefaultMockData(currentYear, month, day);
+  }
+}
+
+/**
+ * Generate default mock data with random contributions
+ */
+function generateDefaultMockData(
+  currentYear: number,
+  month: number,
+  day: number
+): Contribution[] {
   const contributions: Contribution[] = [];
 
   // Generate mock data for the last 3 years
@@ -45,6 +72,76 @@ export function generateMockContributions(): Contribution[] {
   }
 
   return contributions;
+}
+
+/**
+ * Generate mock data for auth setup scenario
+ * Shows a user who just created their account and has their first contributions
+ */
+function generateAuthSetupMockData(
+  currentYear: number,
+  month: number,
+  day: number
+): Contribution[] {
+  const contributions: Contribution[] = [];
+
+  // Only show contributions for the current year (new user)
+  const commits: GitHubCommit[] = [];
+  const pullRequests: GitHubPullRequest[] = [];
+
+  // Generate first-time user contributions
+  commits.push({
+    message: "Initial commit",
+    url: `https://github.com/newuser/hello-world/commit/abc123`,
+    repository: {
+      name: "hello-world",
+      owner: {
+        login: "newuser",
+      },
+    },
+    pushedDate: new Date(currentYear, month - 1, day).toISOString(),
+  });
+
+  commits.push({
+    message: "Add README.md",
+    url: `https://github.com/newuser/hello-world/commit/def456`,
+    repository: {
+      name: "hello-world",
+      owner: {
+        login: "newuser",
+      },
+    },
+    pushedDate: new Date(currentYear, month - 1, day).toISOString(),
+  });
+
+  pullRequests.push({
+    title: "Add initial project structure",
+    url: `https://github.com/newuser/hello-world/pull/1`,
+    repository: {
+      name: "hello-world",
+      owner: {
+        login: "newuser",
+      },
+    },
+    createdAt: new Date(currentYear, month - 1, day).toISOString(),
+    state: "MERGED",
+  });
+
+  contributions.push({
+    year: currentYear,
+    commits,
+    pullRequests,
+  });
+
+  return contributions;
+}
+
+/**
+ * Generate mock data for no entries scenario
+ * Returns empty array to simulate a day with no contributions
+ */
+function generateNoEntriesMockData(): Contribution[] {
+  return [];
 }
 
 /**

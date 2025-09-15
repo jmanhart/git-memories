@@ -54,7 +54,24 @@ The tool will:
 
 - `git-memories` - Show your contributions on today's date
 - `git-memories --test` - Run with mock data (no authentication needed)
+- `git-memories --auth-setup` - Show mock data for a new user scenario
+- `git-memories --no-entries` - Show mock data with no contributions
 - `git-memories --logout` - Remove stored authentication
+- `git-memories --help` - Show help message with all available options
+
+### Mock Scenarios
+
+The tool includes several mock scenarios for testing and demonstration:
+
+- **`--test`**: Shows random mock contributions across multiple years (default test mode)
+- **`--auth-setup`**: Simulates a new GitHub user with their first contributions (initial commit, README, first PR)
+- **`--no-entries`**: Shows what the tool displays when there are no contributions on the current date
+
+These scenarios are perfect for:
+
+- Testing the tool without GitHub authentication
+- Demonstrating the tool to others
+- Seeing different UI states and messages
 
 ## Example Output
 

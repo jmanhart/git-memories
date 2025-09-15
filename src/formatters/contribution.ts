@@ -8,6 +8,21 @@ import { Contribution, GitHubCommit, GitHubPullRequest } from "../types";
 import { EMOJIS } from "../utils/constants";
 
 /**
+ * Create a clean link text for terminal display
+ */
+function createLinkText(url: string, label: string): string {
+  // Create a clean, clickable link format
+  return `🔗 ${label}: ${url}`;
+}
+
+/**
+ * Create a shorter, more concise link format
+ */
+function createShortLink(url: string, label: string): string {
+  return `🔗 ${label}`;
+}
+
+/**
  * Format a single contribution (year's worth of data)
  */
 export function formatContribution(contribution: Contribution): string {
@@ -35,13 +50,26 @@ export function formatContribution(contribution: Contribution): string {
     const prs = prsByRepo[repoName] || [];
 
     if (commits.length > 0 || prs.length > 0) {
+      // Get repository URL from first commit or PR
+      const firstCommit = commits[0];
+      const firstPR = prs[0];
+      const repoUrl = firstCommit
+        ? `https://github.com/${firstCommit.repository.owner.login}/${firstCommit.repository.name}`
+        : firstPR
+        ? `https://github.com/${firstPR.repository.owner.login}/${firstPR.repository.name}`
+        : `https://github.com/${repoName}`;
+
       output += `  📁 ${repoName}\n`;
+      output += `     ${createShortLink(repoUrl, "Repository")} - ${repoUrl}\n`;
 
       // Show commits
       commits.forEach((commit) => {
         const shortMessage = commit.message.split("\n")[0].substring(0, 60);
-        output += `    ${EMOJIS.COMMIT} ${shortMessage}${
-          shortMessage.length === 60 ? "..." : ""
+        const truncatedMessage =
+          shortMessage.length === 60 ? shortMessage + "..." : shortMessage;
+        output += `    ${EMOJIS.COMMIT} ${truncatedMessage}\n`;
+        output += `        ${createShortLink(commit.url, "Commit")} - ${
+          commit.url
         }\n`;
       });
 
@@ -49,9 +77,10 @@ export function formatContribution(contribution: Contribution): string {
       prs.forEach((pr) => {
         const stateEmoji = getPRStateEmoji(pr.state);
         const shortTitle = pr.title.substring(0, 50);
-        output += `    ${stateEmoji} PR: ${shortTitle}${
-          pr.title.length > 50 ? "..." : ""
-        }\n`;
+        const truncatedTitle =
+          pr.title.length > 50 ? shortTitle + "..." : shortTitle;
+        output += `    ${stateEmoji} PR: ${truncatedTitle}\n`;
+        output += `        ${createShortLink(pr.url, "PR")} - ${pr.url}\n`;
       });
 
       output += "\n";
