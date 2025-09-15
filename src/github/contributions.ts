@@ -10,6 +10,7 @@ import { RepositoryAPI } from "./repositories";
 import { CommitAPI } from "./commits";
 import { PullRequestAPI } from "./pull-requests";
 import { Contribution } from "../types";
+import { spinner } from "@clack/prompts";
 
 /**
  * Contributions API handler
@@ -47,53 +48,65 @@ export class ContributionsAPI {
     endYear: number
   ): Promise<Contribution[]> {
     const contributions: Contribution[] = [];
+    const s = spinner();
 
-    console.log(
-      `🔍 Multi-API approach: Finding contributions on ${month}/${day}`
-    );
+    s.start("Fetching your contributions...");
 
-    // Strategy 1: Get user's repositories with creation/update dates (lightweight)
-    const repos = await this.repositoryAPI.getUserRepositories(username);
-    console.log(`📁 Found ${repos.length} repositories`);
+    try {
+      // Strategy 1: Get user's repositories with creation/update dates (lightweight)
+      const repos = await this.repositoryAPI.getUserRepositories(username);
 
-    // Strategy 2: Check which repos were active on this date across years
-    const activeReposByYear = this.repositoryAPI.findActiveReposOnDate(
-      repos,
-      month,
-      day,
-      startYear,
-      endYear
-    );
+      // Strategy 2: Check which repos were active on this date across years
+      const activeReposByYear = this.repositoryAPI.findActiveReposOnDate(
+        repos,
+        month,
+        day,
+        startYear,
+        endYear
+      );
 
-    // Strategy 3: For each year with active repos, get commit details efficiently
-    for (const [year, activeRepos] of Object.entries(activeReposByYear)) {
-      if (activeRepos.length > 0) {
-        console.log(
-          `📅 ${year}: Checking ${activeRepos.length} active repositories`
-        );
+      // Strategy 3: For each year with active repos, get commit details efficiently
+      const years = Object.keys(activeReposByYear).sort(
+        (a, b) => parseInt(b) - parseInt(a)
+      ); // Sort newest first
 
-        try {
-          const yearContributions = await this.getContributionsFromActiveRepos(
-            username,
-            parseInt(year),
-            month,
-            day,
-            activeRepos
-          );
+      for (let i = 0; i < years.length; i++) {
+        const year = years[i];
+        // @ts-ignore - year is a string key from Object.keys()
+        const activeRepos = activeReposByYear[year];
 
-          if (
-            yearContributions.commits.length > 0 ||
-            yearContributions.pullRequests.length > 0
-          ) {
-            contributions.push(yearContributions);
+        if (activeRepos.length > 0) {
+          // Update spinner to show current year being processed
+          s.message(`Fetching your contributions... (${year})`);
+
+          try {
+            const yearContributions =
+              await this.getContributionsFromActiveRepos(
+                username,
+                parseInt(year),
+                month,
+                day,
+                activeRepos
+              );
+
+            if (
+              yearContributions.commits.length > 0 ||
+              yearContributions.pullRequests.length > 0
+            ) {
+              contributions.push(yearContributions);
+            }
+          } catch (error) {
+            console.warn(`Failed to get contributions for ${year}:`, error);
           }
-        } catch (error) {
-          console.warn(`Failed to get contributions for ${year}:`, error);
         }
       }
-    }
 
-    return contributions;
+      s.stop("Contributions fetched!");
+      return contributions;
+    } catch (error) {
+      s.stop("Failed to fetch contributions");
+      throw error;
+    }
   }
 
   /**

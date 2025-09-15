@@ -66,16 +66,11 @@ async function main() {
         `${EMOJIS.TEST} Running in ${modeDescription} with mock data...\n`
       );
 
-      const s = spinner();
-      s.start("Generating mock contributions...");
-
       // Get today's date
       const { month, day } = getCurrentDate();
 
       // Generate mock contributions with the specified scenario
-      const contributions = generateMockContributions(mockScenario);
-
-      s.stop("Mock contributions generated!");
+      const contributions = await generateMockContributions(mockScenario);
 
       // Format and display results
       const formatted = formatContributions(contributions, month, day);
@@ -98,10 +93,6 @@ async function main() {
     // Initialize GitHub API
     const github = new GitHubAPI(token);
 
-    // Show loading spinner
-    const s = spinner();
-    s.start("Fetching your contributions...");
-
     try {
       // Get today's date
       const { year: currentYear, month, day } = getCurrentDate();
@@ -119,13 +110,10 @@ async function main() {
         currentYear
       );
 
-      s.stop("Contributions fetched!");
-
       // Format and display results
       const formatted = formatContributions(contributions, month, day);
       console.log(formatted);
     } catch (error) {
-      s.stop("Failed to fetch contributions");
       console.error(
         `${EMOJIS.ERROR} Error:`,
         error instanceof Error ? error.message : "Unknown error"
