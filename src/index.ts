@@ -5,7 +5,7 @@ import { GitHubAuth } from "./auth";
 import { GitHubAPI } from "./github";
 import { formatContributions } from "./formatters";
 import { generateMockContributions, MockScenario } from "./mock";
-import { getCurrentDate } from "./utils/date";
+import { getCurrentDate, parseDateString } from "./utils/date";
 import { EMOJIS, UI_STRINGS } from "./utils/constants";
 
 // Check for help command
@@ -15,6 +15,7 @@ if (process.argv.includes("--help") || process.argv.includes("-h")) {
 
 Usage:
   git-memories                    # Normal mode - authenticate and show your contributions
+  git-memories --date YYYY-MM-DD  # Show contributions for a specific date
   git-memories --test             # Test mode - show mock data with random contributions
   git-memories --auth-setup       # Auth setup scenario - show mock data for a new user
   git-memories --no-entries       # No entries scenario - show mock data with no contributions
@@ -22,6 +23,7 @@ Usage:
   git-memories --help             # Show this help message
 
 Examples:
+  git-memories --date 2017-09-15  # Show contributions for September 15th across all years
   git-memories --test             # See what the tool looks like with sample data
   git-memories --auth-setup       # See what it looks like for a new GitHub user
   git-memories --no-entries       # See what it looks like when there are no contributions
@@ -40,6 +42,27 @@ if (process.argv.includes("--logout")) {
 const isTestMode = process.argv.includes("--test");
 const isAuthSetupMode = process.argv.includes("--auth-setup");
 const isNoEntriesMode = process.argv.includes("--no-entries");
+
+// Check for custom date
+const dateArgIndex = process.argv.findIndex(arg => arg === "--date");
+let customDate: { year: number; month: number; day: number } | null = null;
+
+if (dateArgIndex !== -1) {
+  const dateValue = process.argv[dateArgIndex + 1];
+  if (!dateValue) {
+    console.error("❌ Error: --date flag requires a date in YYYY-MM-DD format");
+    console.error("Example: git-memories --date 2017-09-15");
+    process.exit(1);
+  }
+  
+  try {
+    customDate = parseDateString(dateValue);
+  } catch (error) {
+    console.error("❌ Error:", error instanceof Error ? error.message : "Invalid date format");
+    console.error("Expected format: YYYY-MM-DD (e.g., 2017-09-15)");
+    process.exit(1);
+  }
+}
 
 // Determine mock scenario
 let mockScenario: MockScenario = "default";
@@ -70,8 +93,8 @@ async function main() {
 
       console.log(`${EMOJIS.TEST} ${modeMessage}\n`);
 
-      // Get today's date
-      const { month, day } = getCurrentDate();
+      // Get date (custom or today's)
+      const { month, day } = customDate || getCurrentDate();
 
       // Generate mock contributions with the specified scenario
       const contributions = await generateMockContributions(mockScenario);
@@ -94,12 +117,20 @@ async function main() {
     const auth = new GitHubAuth();
     const { token, username } = await auth.authenticate();
 
+    // Show custom date message if provided
+    if (customDate) {
+      const { month, day } = customDate;
+      const monthName = new Date(2024, month - 1, day).toLocaleDateString("en-US", { month: "long" });
+      console.log(`\n🔍 Searching for contributions on ${monthName} ${day} across all years...\n`);
+    }
+
     // Initialize GitHub API
     const github = new GitHubAPI(token);
 
     try {
-      // Get today's date
-      const { year: currentYear, month, day } = getCurrentDate();
+      // Get date (custom or today's)
+      const dateToUse = customDate || getCurrentDate();
+      const { year: currentYear, month, day } = dateToUse;
 
       // Get user's account creation date to determine how far back to look
       const user = await github.getUser(username);

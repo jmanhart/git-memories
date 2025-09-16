@@ -88,10 +88,10 @@ export class GitHubAuth {
         return result;
       }
 
-      // Fall back to other methods
+      // Fall back to GitHub CLI
       s.stop("OAuth not configured");
       console.log(
-        "\n⚠️  OAuth App not configured. Falling back to manual token setup.\n"
+        "\n⚠️  OAuth App not configured. Using GitHub CLI authentication.\n"
       );
       return await this.startManualAuthFlow();
     } catch (error) {
@@ -100,8 +100,10 @@ export class GitHubAuth {
         "❌ Error:",
         error instanceof Error ? error.message : "Unknown error"
       );
-      console.log("\n💡 Falling back to manual token setup...\n");
-      return await this.startManualAuthFlow();
+      console.log(
+        "\n💡 Please install GitHub CLI and run 'gh auth login' to authenticate.\n"
+      );
+      throw error;
     }
   }
 
@@ -116,8 +118,12 @@ export class GitHubAuth {
       return await this.useGitHubCLI();
     }
 
-    // Fallback to manual token creation
-    return await this.createManualToken();
+    // No manual token creation - guide user to GitHub CLI
+    throw new Error(
+      "GitHub CLI not found. Please install GitHub CLI and run 'gh auth login' to authenticate.\n\n" +
+        "Install GitHub CLI: https://cli.github.com/\n" +
+        "Then run: gh auth login"
+    );
   }
 
   /**
@@ -143,8 +149,10 @@ export class GitHubAuth {
       return result;
     } catch (error) {
       s.stop("GitHub CLI authentication failed");
-      console.log("Falling back to manual token setup...\n");
-      return await this.createManualToken();
+      throw new Error(
+        "GitHub CLI authentication failed. Please ensure you're logged in with 'gh auth login'.\n\n" +
+          "If you continue to have issues, please check your GitHub CLI installation."
+      );
     }
   }
 

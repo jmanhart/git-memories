@@ -46,4 +46,8 @@ git-memories
     💚 Update dependencies
 
 Thanks for the memories! 🎉
+
+## 🧪 Testing
+
+For development and testing, see the [`test/`](./test/) directory for comprehensive testing utilities and scenarios.
 ```
