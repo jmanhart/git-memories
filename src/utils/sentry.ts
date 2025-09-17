@@ -30,15 +30,23 @@ export function initSentry(config: SentryConfig = {}): void {
     // Enable Sentry logging
     enableLogs: true,
 
-    // Performance monitoring
-    tracesSampleRate: 0.1, // Capture 10% of transactions for performance monitoring
+    // Performance monitoring - increased sample rate for better insights
+    tracesSampleRate: environment === "development" ? 1.0 : 0.2, // 100% in dev, 20% in prod
+    profilesSampleRate: environment === "development" ? 1.0 : 0.1, // Profile sampling
 
-    // Integrations for comprehensive logging
+    // Integrations for comprehensive logging and performance
     integrations: [
       // Capture console logs and send to Sentry
       Sentry.consoleLoggingIntegration({
         levels: ["log", "warn", "error"],
       }),
+      // HTTP integration for tracking external API calls
+      Sentry.httpIntegration({
+        breadcrumbs: true,
+      }),
+      // Node.js specific integrations
+      Sentry.nodeContextIntegration(),
+      Sentry.localVariablesIntegration(),
     ],
 
     // Error filtering
@@ -64,7 +72,9 @@ export function initSentry(config: SentryConfig = {}): void {
     },
   });
 
-  console.log(`Sentry initialized for environment: ${environment}`);
+  console.log(
+    `Sentry initialized for environment: ${environment} with performance tracing`
+  );
 }
 
 export function captureException(
@@ -166,4 +176,140 @@ export function logFormatted(
     formattedMessage = formattedMessage.replace(`\${${index}}`, String(arg));
   });
   Sentry.logger[level](formattedMessage);
+}
+
+// Performance tracing functions using Sentry v10 API
+export function startTransaction(
+  name: string,
+  op: string = "cli.operation",
+  description?: string
+): any {
+  return Sentry.startSpan(
+    {
+      name,
+      op,
+      attributes: {
+        component: "git-memories-cli",
+        ...(description && { description }),
+      },
+    },
+    () => {}
+  );
+}
+
+export function startSpan(
+  parentSpan: any,
+  name: string,
+  op: string = "cli.span",
+  description?: string
+): any {
+  return Sentry.startSpan(
+    {
+      name,
+      op,
+      attributes: {
+        span_name: name,
+        ...(description && { description }),
+      },
+    },
+    () => {}
+  );
+}
+
+export function withTransaction<T>(
+  name: string,
+  op: string = "cli.operation",
+  callback: (span: any) => T
+): T {
+  return Sentry.startSpan(
+    {
+      name,
+      op,
+      attributes: {
+        component: "git-memories-cli",
+      },
+    },
+    (span) => {
+      try {
+        const result = callback(span);
+        span?.setStatus({ code: 1, message: "ok" }); // 1 = OK
+        return result;
+      } catch (error) {
+        span?.setStatus({ code: 2, message: "internal_error" }); // 2 = Internal Error
+        captureException(error as Error, { transaction: name });
+        throw error;
+      }
+    }
+  );
+}
+
+export function withSpan<T>(
+  parentSpan: any,
+  name: string,
+  op: string = "cli.span",
+  callback: (span: any) => T
+): T {
+  return Sentry.startSpan(
+    {
+      name,
+      op,
+      attributes: {
+        span_name: name,
+      },
+    },
+    (span) => {
+      try {
+        const result = callback(span);
+        span?.setStatus({ code: 1, message: "ok" }); // 1 = OK
+        return result;
+      } catch (error) {
+        span?.setStatus({ code: 2, message: "internal_error" }); // 2 = Internal Error
+        captureException(error as Error, {
+          span: name,
+          transaction: parentSpan?.name,
+        });
+        throw error;
+      }
+    }
+  );
+}
+
+// Convenience functions for common operations
+export function traceAuth<T>(
+  authMethod: string,
+  callback: (span: any) => T
+): T {
+  return withTransaction(`auth.${authMethod}`, "auth", (span) => {
+    span?.setAttributes({ auth_method: authMethod });
+    return callback(span);
+  });
+}
+
+export function traceApiCall<T>(
+  apiName: string,
+  endpoint: string,
+  callback: (span: any) => T
+): T {
+  return withTransaction(`api.${apiName}`, "http.client", (span) => {
+    span?.setAttributes({
+      api_name: apiName,
+      endpoint: endpoint,
+      "http.url": endpoint,
+    });
+    return callback(span);
+  });
+}
+
+export function traceFileOperation<T>(
+  operation: string,
+  filePath: string,
+  callback: (span: any) => T
+): T {
+  return withTransaction(`file.${operation}`, "file", (span) => {
+    span?.setAttributes({
+      file_operation: operation,
+      "file.path": filePath,
+    });
+    return callback(span);
+  });
 }

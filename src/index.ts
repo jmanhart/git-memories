@@ -14,6 +14,9 @@ import {
   addBreadcrumb,
   setTag,
   flush,
+  withTransaction,
+  traceAuth,
+  traceApiCall,
 } from "./utils/sentry";
 import { logger } from "./utils/logger";
 
@@ -101,28 +104,10 @@ if (isAuthSetupMode) {
 }
 
 async function main() {
-  const startTime = Date.now();
+  return withTransaction("git-memories.cli", "cli", async (transaction) => {
+    const startTime = Date.now();
 
-  // Add breadcrumb for CLI start
-  addBreadcrumb("CLI started", "cli", {
-    args: process.argv.slice(2),
-    nodeVersion: process.version,
-    platform: process.platform,
-  });
-
-  // Log CLI start
-  logger.cliStart(process.argv.slice(2));
-
-  // Console logging that will be captured by Sentry
-  console.log("🚀 git-memories CLI starting...", {
-    args: process.argv.slice(2),
-    nodeVersion: process.version,
-    platform: process.platform,
-    timestamp: new Date().toISOString(),
-  });
-
-  // Send development mode event for each execution
-  if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+    // Set transaction tags
     const mode = isTestMode
       ? "test"
       : isAuthSetupMode
@@ -130,165 +115,225 @@ async function main() {
       : isNoEntriesMode
       ? "no-entries"
       : "normal";
-    captureMessage(`CLI execution started - Mode: ${mode}`, "info", {
-      component: "cli",
-      operation: "main",
-      mode,
-      hasCustomDate: !!customDate,
-      customDate: customDate
-        ? `${customDate.year}-${customDate.month}-${customDate.day}`
-        : null,
-      environment: process.env.NODE_ENV || "development",
-    });
-  }
 
-  // Show intro
-  intro(`${EMOJIS.INTRO} git-memories`);
-
-  try {
-    if (isTestMode || isAuthSetupMode || isNoEntriesMode) {
-      // Test mode - use mock data
-      const modeDescription = isAuthSetupMode
-        ? UI_STRINGS.MODES.AUTH_SETUP
-        : isNoEntriesMode
-        ? UI_STRINGS.MODES.NO_ENTRIES
-        : UI_STRINGS.MODES.TEST;
-
-      const modeMessage = isAuthSetupMode
-        ? UI_STRINGS.MOCK.AUTH_SETUP_MODE
-        : isNoEntriesMode
-        ? UI_STRINGS.MOCK.NO_ENTRIES_MODE
-        : UI_STRINGS.MOCK.TEST_MODE;
-
-      console.log(`${EMOJIS.TEST} ${modeMessage}\n`);
-
-      // Get date (custom or today's)
-      const { month, day } = customDate || getCurrentDate();
-
-      // Generate mock contributions with the specified scenario
-      const contributions = await generateMockContributions(mockScenario);
-
-      // Format and display results
-      const formatted = formatContributions(contributions, month, day);
-      console.log(formatted);
-
-      const modeSuffix = isAuthSetupMode
-        ? UI_STRINGS.MODE_SUFFIXES.AUTH_SETUP
-        : isNoEntriesMode
-        ? UI_STRINGS.MODE_SUFFIXES.NO_ENTRIES
-        : UI_STRINGS.MODE_SUFFIXES.TEST;
-
-      outro(`${UI_STRINGS.OUTRO.SUCCESS} ${modeSuffix}`);
-      return;
-    }
-
-    // Normal mode - authenticate with GitHub
-    addBreadcrumb("Starting authentication", "auth");
-    const auth = new GitHubAuth();
-    const { token, username } = await auth.authenticate();
-
-    // Set user context for Sentry
-    setTag("username", username);
-    addBreadcrumb("Authentication successful", "auth", { username });
-
-    // Show custom date message if provided
+    transaction.setTag("mode", mode);
+    transaction.setTag("hasCustomDate", !!customDate);
     if (customDate) {
-      const { month, day } = customDate;
-      const monthName = new Date(2024, month - 1, day).toLocaleDateString(
-        "en-US",
-        { month: "long" }
-      );
-      console.log(
-        `\n🔍 Searching for contributions on ${monthName} ${day} across all years...\n`
+      transaction.setTag(
+        "customDate",
+        `${customDate.year}-${customDate.month}-${customDate.day}`
       );
     }
 
-    // Initialize GitHub API
-    const github = new GitHubAPI(token);
+    // Add breadcrumb for CLI start
+    addBreadcrumb("CLI started", "cli", {
+      args: process.argv.slice(2),
+      nodeVersion: process.version,
+      platform: process.platform,
+    });
+
+    // Log CLI start
+    logger.cliStart(process.argv.slice(2));
+
+    // Console logging that will be captured by Sentry
+    console.log("🚀 git-memories CLI starting...", {
+      args: process.argv.slice(2),
+      nodeVersion: process.version,
+      platform: process.platform,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Send development mode event for each execution
+    if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+      captureMessage(`CLI execution started - Mode: ${mode}`, "info", {
+        component: "cli",
+        operation: "main",
+        mode,
+        hasCustomDate: !!customDate,
+        customDate: customDate
+          ? `${customDate.year}-${customDate.month}-${customDate.day}`
+          : null,
+        environment: process.env.NODE_ENV || "development",
+      });
+    }
+
+    // Show intro
+    intro(`${EMOJIS.INTRO} git-memories`);
 
     try {
-      // Get date (custom or today's)
-      const dateToUse = customDate || getCurrentDate();
-      const { year: currentYear, month, day } = dateToUse;
+      if (isTestMode || isAuthSetupMode || isNoEntriesMode) {
+        // Test mode - use mock data
+        const modeDescription = isAuthSetupMode
+          ? UI_STRINGS.MODES.AUTH_SETUP
+          : isNoEntriesMode
+          ? UI_STRINGS.MODES.NO_ENTRIES
+          : UI_STRINGS.MODES.TEST;
 
-      // Get user's account creation date to determine how far back to look
-      const user = await github.getUser(username);
-      const accountCreatedYear = new Date(user.createdAt).getFullYear();
+        const modeMessage = isAuthSetupMode
+          ? UI_STRINGS.MOCK.AUTH_SETUP_MODE
+          : isNoEntriesMode
+          ? UI_STRINGS.MOCK.NO_ENTRIES_MODE
+          : UI_STRINGS.MOCK.TEST_MODE;
 
-      // Fetch contributions for this day across all years
-      const contributions = await github.getContributionsOnDate(
-        username,
-        month,
-        day,
-        accountCreatedYear,
-        currentYear
-      );
+        console.log(`${EMOJIS.TEST} ${modeMessage}\n`);
 
-      // Format and display results
-      const formatted = formatContributions(contributions, month, day);
-      console.log(formatted);
+        // Get date (custom or today's)
+        const { month, day } = customDate || getCurrentDate();
+
+        // Generate mock contributions with the specified scenario
+        const contributions = await generateMockContributions(mockScenario);
+
+        // Format and display results
+        const formatted = formatContributions(contributions, month, day);
+        console.log(formatted);
+
+        const modeSuffix = isAuthSetupMode
+          ? UI_STRINGS.MODE_SUFFIXES.AUTH_SETUP
+          : isNoEntriesMode
+          ? UI_STRINGS.MODE_SUFFIXES.NO_ENTRIES
+          : UI_STRINGS.MODE_SUFFIXES.TEST;
+
+        outro(`${UI_STRINGS.OUTRO.SUCCESS} ${modeSuffix}`);
+        return;
+      }
+
+      // Normal mode - authenticate with GitHub
+      addBreadcrumb("Starting authentication", "auth");
+      const auth = new GitHubAuth();
+
+      // Trace authentication flow
+      const { token, username } = await traceAuth("github", async (span) => {
+        span.setTag("auth_method", "github");
+        const result = await auth.authenticate();
+        span.setTag("username", result.username);
+        return result;
+      });
+
+      // Set user context for Sentry
+      setTag("username", username);
+      addBreadcrumb("Authentication successful", "auth", { username });
+
+      // Show custom date message if provided
+      if (customDate) {
+        const { month, day } = customDate;
+        const monthName = new Date(2024, month - 1, day).toLocaleDateString(
+          "en-US",
+          { month: "long" }
+        );
+        console.log(
+          `\n🔍 Searching for contributions on ${monthName} ${day} across all years...\n`
+        );
+      }
+
+      // Initialize GitHub API
+      const github = new GitHubAPI(token);
+
+      try {
+        // Get date (custom or today's)
+        const dateToUse = customDate || getCurrentDate();
+        const { year: currentYear, month, day } = dateToUse;
+
+        // Trace GitHub API calls
+        const user = await traceApiCall(
+          "getUser",
+          `https://api.github.com/users/${username}`,
+          async (span) => {
+            span.setTag("username", username);
+            return await github.getUser(username);
+          }
+        );
+
+        const accountCreatedYear = new Date(user.createdAt).getFullYear();
+
+        // Fetch contributions for this day across all years
+        const contributions = await traceApiCall(
+          "getContributionsOnDate",
+          `https://api.github.com/users/${username}/events`,
+          async (span) => {
+            span.setTag("username", username);
+            span.setTag("month", month);
+            span.setTag("day", day);
+            span.setTag("accountCreatedYear", accountCreatedYear);
+            span.setTag("currentYear", currentYear);
+            return await github.getContributionsOnDate(
+              username,
+              month,
+              day,
+              accountCreatedYear,
+              currentYear
+            );
+          }
+        );
+
+        // Format and display results
+        const formatted = formatContributions(contributions, month, day);
+        console.log(formatted);
+      } catch (error) {
+        captureException(
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            component: "github-api",
+            operation: "getContributionsOnDate",
+            username,
+            date: customDate || getCurrentDate(),
+          }
+        );
+
+        console.error(
+          `${EMOJIS.ERROR} Error:`,
+          error instanceof Error ? error.message : "Unknown error"
+        );
+        process.exit(1);
+      }
+
+      const duration = Date.now() - startTime;
+      outro(UI_STRINGS.OUTRO.SUCCESS);
+
+      // Log CLI completion
+      logger.cliComplete(duration);
+
+      // Console logging that will be captured by Sentry
+      console.log("✅ git-memories CLI completed successfully", {
+        duration: `${duration}ms`,
+        timestamp: new Date().toISOString(),
+      });
+
+      // Send development mode completion event
+      if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+        captureMessage("CLI execution completed successfully", "info", {
+          component: "cli",
+          operation: "completion",
+          environment: process.env.NODE_ENV || "development",
+        });
+      }
     } catch (error) {
+      const duration = Date.now() - startTime;
       captureException(
         error instanceof Error ? error : new Error(String(error)),
         {
-          component: "github-api",
-          operation: "getContributionsOnDate",
-          username,
-          date: customDate || getCurrentDate(),
+          component: "main",
+          operation: "main",
+        }
+      );
+
+      logger.cliError(
+        error instanceof Error ? error.message : "Unknown error",
+        {
+          duration,
+          error: error instanceof Error ? error.message : String(error),
         }
       );
 
       console.error(
-        `${EMOJIS.ERROR} Error:`,
+        "❌ Error:",
         error instanceof Error ? error.message : "Unknown error"
       );
+
+      // Flush Sentry before exiting
+      await flush();
       process.exit(1);
     }
-
-    const duration = Date.now() - startTime;
-    outro(UI_STRINGS.OUTRO.SUCCESS);
-
-    // Log CLI completion
-    logger.cliComplete(duration);
-
-    // Console logging that will be captured by Sentry
-    console.log("✅ git-memories CLI completed successfully", {
-      duration: `${duration}ms`,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Send development mode completion event
-    if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
-      captureMessage("CLI execution completed successfully", "info", {
-        component: "cli",
-        operation: "completion",
-        environment: process.env.NODE_ENV || "development",
-      });
-    }
-  } catch (error) {
-    const duration = Date.now() - startTime;
-    captureException(
-      error instanceof Error ? error : new Error(String(error)),
-      {
-        component: "main",
-        operation: "main",
-      }
-    );
-
-    logger.cliError(error instanceof Error ? error.message : "Unknown error", {
-      duration,
-      error: error instanceof Error ? error.message : String(error),
-    });
-
-    console.error(
-      "❌ Error:",
-      error instanceof Error ? error.message : "Unknown error"
-    );
-
-    // Flush Sentry before exiting
-    await flush();
-    process.exit(1);
-  }
+  });
 }
 
 // Handle unhandled promise rejections
