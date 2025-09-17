@@ -10,6 +10,19 @@ import { config } from "dotenv";
 import { AuthResult, OAuthConfig } from "../types";
 import { AUTH_CONFIG } from "../utils/constants";
 import { logger } from "../utils/logger";
+import {
+  captureException,
+  captureMessage,
+  addBreadcrumb,
+  setTag,
+  setUserContext,
+  setContext,
+  logInfo,
+  logError,
+  logWarn,
+  logDebug,
+  logFormatted,
+} from "../utils/sentry";
 
 // Load environment variables
 config();
@@ -32,6 +45,11 @@ export class OAuthAuth {
       hasClientSecret: !!this.config.clientSecret,
       redirectUri: this.config.redirectUri,
     });
+
+    addBreadcrumb("OAuth constructor initialized", "oauth", {
+      hasClientId: !!this.config.clientId,
+      hasClientSecret: !!this.config.clientSecret,
+    });
   }
 
   /**
@@ -51,16 +69,61 @@ export class OAuthAuth {
    * Start OAuth flow
    */
   async authenticate(): Promise<AuthResult> {
+    const startTime = Date.now();
+    const sessionId = Math.random().toString(36).substring(7);
+
+    // Set up OAuth-specific context
+    setContext("oauth_session", {
+      sessionId,
+      startTime: new Date().toISOString(),
+      platform: process.platform,
+      hasClientId: !!this.config.clientId,
+      hasClientSecret: !!this.config.clientSecret,
+      redirectUri: this.config.redirectUri,
+    });
+
     logger.info("OAuth", "Starting OAuth authentication flow");
+    addBreadcrumb("Starting OAuth authentication flow", "oauth");
+    logger.authStart("oauth", {
+      timestamp: new Date().toISOString(),
+      sessionId,
+    });
+
+    // Rich Sentry logging for OAuth start
+    logInfo("OAuth authentication flow initiated", {
+      sessionId,
+      platform: process.platform,
+      hasClientId: !!this.config.clientId,
+      hasClientSecret: !!this.config.clientSecret,
+      redirectUri: this.config.redirectUri,
+      timestamp: new Date().toISOString(),
+    });
 
     try {
       // Generate state parameter for security
       const state = Math.random().toString(36).substring(7);
       logger.debug("OAuth", "Generated state parameter", { state });
+      logger.authStep("state_generated", { state, sessionId });
+
+      // Rich logging for state generation
+      logDebug("OAuth state parameter generated", {
+        sessionId,
+        state,
+        timestamp: new Date().toISOString(),
+      });
 
       // Start local server to handle callback (this will set the dynamic port)
       const { app, server, port } = await this.startCallbackServer(state);
       logger.info("OAuth", "Callback server started", { port });
+      logger.authStep("callback_server_started", { port, sessionId });
+
+      // Rich logging for callback server
+      logInfo("OAuth callback server started", {
+        sessionId,
+        port,
+        state,
+        timestamp: new Date().toISOString(),
+      });
 
       // Update redirect URI with the actual port
       this.config.redirectUri = `http://localhost:${port}/callback`;
@@ -71,29 +134,119 @@ export class OAuthAuth {
       // Create OAuth URL with the correct port
       const authUrl = this.createAuthUrl(state);
       logger.info("OAuth", "Created OAuth URL", { authUrl });
+      logger.authStep("auth_url_created", { authUrl });
 
       // Set up callback handler
       this.setupCallbackHandler(app, server, state);
+      logger.authStep("callback_handler_setup");
 
       // Open browser
       logger.info("OAuth", "Opening browser for OAuth flow");
+      logger.authStep("browser_opening", { sessionId });
+
+      // Rich logging for browser opening
+      logInfo("Opening browser for OAuth flow", {
+        sessionId,
+        authUrl,
+        timestamp: new Date().toISOString(),
+      });
+
       await open(authUrl);
 
       // Wait for callback
       logger.info("OAuth", "Waiting for OAuth callback");
+      logger.authStep("waiting_for_callback", { sessionId });
+
+      // Rich logging for callback waiting
+      logInfo("Waiting for OAuth callback", {
+        sessionId,
+        port,
+        state,
+        timestamp: new Date().toISOString(),
+      });
+
       const result = await this.waitForCallback(app, server);
+
+      const duration = Date.now() - startTime;
+
+      // Set user context for successful OAuth
+      setUserContext({
+        id: result.username,
+        username: result.username,
+      });
 
       logger.info("OAuth", "OAuth authentication successful", {
         username: result.username,
         hasToken: !!result.token,
       });
 
+      addBreadcrumb("OAuth authentication successful", "oauth", {
+        username: result.username,
+      });
+      setTag("oauth_success", "true");
+      setTag("auth_method", "oauth");
+      setTag("auth_success", "true");
+
+      logger.authSuccess("oauth", result.username, duration);
+      logger.authStep("oauth_completed", {
+        username: result.username,
+        duration,
+        hasToken: !!result.token,
+        sessionId,
+      });
+
+      // Rich Sentry logging for successful OAuth
+      logInfo("OAuth authentication completed successfully", {
+        sessionId,
+        username: result.username,
+        duration,
+        hasToken: !!result.token,
+        platform: process.platform,
+        timestamp: new Date().toISOString(),
+      });
+
       return result;
     } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Rich error logging
+      logError("OAuth authentication failed", {
+        sessionId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        duration,
+        platform: process.platform,
+        timestamp: new Date().toISOString(),
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+
       logger.error("OAuth", "OAuth authentication failed", {
         error: error instanceof Error ? error.message : "Unknown error",
         stack: error instanceof Error ? error.stack : undefined,
       });
+
+      captureException(
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "oauth",
+          operation: "authenticate",
+          sessionId,
+          duration,
+        }
+      );
+      setTag("oauth_success", "false");
+      setTag("auth_success", "false");
+      setTag("auth_method", "oauth");
+
+      logger.authFailure(
+        "oauth",
+        error instanceof Error ? error.message : "Unknown error",
+        {
+          duration,
+          error: error instanceof Error ? error.message : String(error),
+          sessionId,
+        }
+      );
+
       throw error;
     }
   }
