@@ -7,6 +7,31 @@ import { formatContributions } from "./formatters";
 import { generateMockContributions, MockScenario } from "./mock";
 import { getCurrentDate, parseDateString } from "./utils/date";
 import { EMOJIS, UI_STRINGS } from "./utils/constants";
+import {
+  initSentry,
+  captureException,
+  captureMessage,
+  addBreadcrumb,
+  setTag,
+  flush,
+} from "./utils/sentry";
+import { logger } from "./utils/logger";
+
+// Initialize Sentry as early as possible
+initSentry();
+
+// Send development mode event if running in development
+if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+  captureMessage("CLI tool executed in development mode", "info", {
+    component: "cli",
+    operation: "startup",
+    environment: process.env.NODE_ENV || "development",
+    timestamp: new Date().toISOString(),
+    args: process.argv.slice(2),
+    nodeVersion: process.version,
+    platform: process.platform,
+  });
+}
 
 // Check for help command
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
@@ -44,7 +69,7 @@ const isAuthSetupMode = process.argv.includes("--auth-setup");
 const isNoEntriesMode = process.argv.includes("--no-entries");
 
 // Check for custom date
-const dateArgIndex = process.argv.findIndex(arg => arg === "--date");
+const dateArgIndex = process.argv.findIndex((arg) => arg === "--date");
 let customDate: { year: number; month: number; day: number } | null = null;
 
 if (dateArgIndex !== -1) {
@@ -54,11 +79,14 @@ if (dateArgIndex !== -1) {
     console.error("Example: git-memories --date 2017-09-15");
     process.exit(1);
   }
-  
+
   try {
     customDate = parseDateString(dateValue);
   } catch (error) {
-    console.error("❌ Error:", error instanceof Error ? error.message : "Invalid date format");
+    console.error(
+      "❌ Error:",
+      error instanceof Error ? error.message : "Invalid date format"
+    );
     console.error("Expected format: YYYY-MM-DD (e.g., 2017-09-15)");
     process.exit(1);
   }
@@ -73,6 +101,47 @@ if (isAuthSetupMode) {
 }
 
 async function main() {
+  const startTime = Date.now();
+
+  // Add breadcrumb for CLI start
+  addBreadcrumb("CLI started", "cli", {
+    args: process.argv.slice(2),
+    nodeVersion: process.version,
+    platform: process.platform,
+  });
+
+  // Log CLI start
+  logger.cliStart(process.argv.slice(2));
+
+  // Console logging that will be captured by Sentry
+  console.log("🚀 git-memories CLI starting...", {
+    args: process.argv.slice(2),
+    nodeVersion: process.version,
+    platform: process.platform,
+    timestamp: new Date().toISOString(),
+  });
+
+  // Send development mode event for each execution
+  if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+    const mode = isTestMode
+      ? "test"
+      : isAuthSetupMode
+      ? "auth-setup"
+      : isNoEntriesMode
+      ? "no-entries"
+      : "normal";
+    captureMessage(`CLI execution started - Mode: ${mode}`, "info", {
+      component: "cli",
+      operation: "main",
+      mode,
+      hasCustomDate: !!customDate,
+      customDate: customDate
+        ? `${customDate.year}-${customDate.month}-${customDate.day}`
+        : null,
+      environment: process.env.NODE_ENV || "development",
+    });
+  }
+
   // Show intro
   intro(`${EMOJIS.INTRO} git-memories`);
 
@@ -114,14 +183,24 @@ async function main() {
     }
 
     // Normal mode - authenticate with GitHub
+    addBreadcrumb("Starting authentication", "auth");
     const auth = new GitHubAuth();
     const { token, username } = await auth.authenticate();
+
+    // Set user context for Sentry
+    setTag("username", username);
+    addBreadcrumb("Authentication successful", "auth", { username });
 
     // Show custom date message if provided
     if (customDate) {
       const { month, day } = customDate;
-      const monthName = new Date(2024, month - 1, day).toLocaleDateString("en-US", { month: "long" });
-      console.log(`\n🔍 Searching for contributions on ${monthName} ${day} across all years...\n`);
+      const monthName = new Date(2024, month - 1, day).toLocaleDateString(
+        "en-US",
+        { month: "long" }
+      );
+      console.log(
+        `\n🔍 Searching for contributions on ${monthName} ${day} across all years...\n`
+      );
     }
 
     // Initialize GitHub API
@@ -149,6 +228,16 @@ async function main() {
       const formatted = formatContributions(contributions, month, day);
       console.log(formatted);
     } catch (error) {
+      captureException(
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          component: "github-api",
+          operation: "getContributionsOnDate",
+          username,
+          date: customDate || getCurrentDate(),
+        }
+      );
+
       console.error(
         `${EMOJIS.ERROR} Error:`,
         error instanceof Error ? error.message : "Unknown error"
@@ -156,23 +245,71 @@ async function main() {
       process.exit(1);
     }
 
+    const duration = Date.now() - startTime;
     outro(UI_STRINGS.OUTRO.SUCCESS);
+
+    // Log CLI completion
+    logger.cliComplete(duration);
+
+    // Console logging that will be captured by Sentry
+    console.log("✅ git-memories CLI completed successfully", {
+      duration: `${duration}ms`,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Send development mode completion event
+    if (process.env.NODE_ENV === "development" || process.env.DEBUG) {
+      captureMessage("CLI execution completed successfully", "info", {
+        component: "cli",
+        operation: "completion",
+        environment: process.env.NODE_ENV || "development",
+      });
+    }
   } catch (error) {
+    const duration = Date.now() - startTime;
+    captureException(
+      error instanceof Error ? error : new Error(String(error)),
+      {
+        component: "main",
+        operation: "main",
+      }
+    );
+
+    logger.cliError(error instanceof Error ? error.message : "Unknown error", {
+      duration,
+      error: error instanceof Error ? error.message : String(error),
+    });
+
     console.error(
       "❌ Error:",
       error instanceof Error ? error.message : "Unknown error"
     );
+
+    // Flush Sentry before exiting
+    await flush();
     process.exit(1);
   }
 }
 
 // Handle unhandled promise rejections
 process.on("unhandledRejection", (reason, promise) => {
+  captureException(new Error(`Unhandled Rejection: ${reason}`), {
+    component: "process",
+    operation: "unhandledRejection",
+    promise: String(promise),
+  });
   console.error("Unhandled Rejection at:", promise, "reason:", reason);
   process.exit(1);
 });
 
-main().catch((error) => {
+main().catch(async (error) => {
+  captureException(error instanceof Error ? error : new Error(String(error)), {
+    component: "main",
+    operation: "main-catch",
+  });
   console.error("Fatal error:", error);
+
+  // Flush Sentry before exiting
+  await flush();
   process.exit(1);
 });
