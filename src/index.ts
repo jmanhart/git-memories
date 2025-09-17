@@ -116,14 +116,13 @@ async function main() {
       ? "no-entries"
       : "normal";
 
-    transaction.setTag("mode", mode);
-    transaction.setTag("hasCustomDate", !!customDate);
-    if (customDate) {
-      transaction.setTag(
-        "customDate",
-        `${customDate.year}-${customDate.month}-${customDate.day}`
-      );
-    }
+    transaction?.setAttributes({
+      mode,
+      hasCustomDate: !!customDate,
+      ...(customDate && {
+        customDate: `${customDate.year}-${customDate.month}-${customDate.day}`,
+      }),
+    });
 
     // Add breadcrumb for CLI start
     addBreadcrumb("CLI started", "cli", {
@@ -203,9 +202,13 @@ async function main() {
 
       // Trace authentication flow
       const { token, username } = await traceAuth("github", async (span) => {
-        span.setTag("auth_method", "github");
+        span?.setAttributes({
+          auth_method: "github",
+        });
         const result = await auth.authenticate();
-        span.setTag("username", result.username);
+        span?.setAttributes({
+          username: result.username,
+        });
         return result;
       });
 
@@ -238,7 +241,9 @@ async function main() {
           "getUser",
           `https://api.github.com/users/${username}`,
           async (span) => {
-            span.setTag("username", username);
+            span?.setAttributes({
+              username: username,
+            });
             return await github.getUser(username);
           }
         );
@@ -250,11 +255,13 @@ async function main() {
           "getContributionsOnDate",
           `https://api.github.com/users/${username}/events`,
           async (span) => {
-            span.setTag("username", username);
-            span.setTag("month", month);
-            span.setTag("day", day);
-            span.setTag("accountCreatedYear", accountCreatedYear);
-            span.setTag("currentYear", currentYear);
+            span?.setAttributes({
+              username: username,
+              month: month,
+              day: day,
+              accountCreatedYear: accountCreatedYear,
+              currentYear: currentYear,
+            });
             return await github.getContributionsOnDate(
               username,
               month,
