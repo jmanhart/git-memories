@@ -4,8 +4,12 @@
  * Handles formatting of individual contributions and repository groups
  */
 
-import { Contribution, GitHubCommit, GitHubPullRequest } from "../types";
-import { EMOJIS } from "../utils/constants";
+import {
+  Contribution,
+  GitHubCommit,
+  GitHubPullRequest,
+  EMOJIS,
+} from "@git-memories/core";
 
 /**
  * Create a clean link text for terminal display
@@ -30,11 +34,11 @@ export function formatContribution(contribution: Contribution): string {
   output += "─".repeat(20) + "\n";
 
   // Group commits and PRs by repository
-  const commitsByRepo = groupBy(
+  const commitsByRepo = groupBy<GitHubCommit>(
     contribution.commits,
     (commit) => commit.repository.name
   );
-  const prsByRepo = groupBy(
+  const prsByRepo = groupBy<GitHubPullRequest>(
     contribution.pullRequests,
     (pr) => pr.repository.name
   );

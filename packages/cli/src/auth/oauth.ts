@@ -7,9 +7,12 @@
 import express from "express";
 import open from "open";
 import { config } from "dotenv";
-import { AuthResult, OAuthConfig } from "../types";
-import { AUTH_CONFIG } from "../utils/constants";
-import { logger } from "../utils/logger";
+import {
+  AuthResult,
+  OAuthConfig,
+  AUTH_CONFIG,
+  logger,
+} from "@git-memories/core";
 import {
   captureException,
   captureMessage,
@@ -23,7 +26,7 @@ import {
   logDebug,
   logFormatted,
   traceAuth,
-} from "../utils/sentry";
+} from "@git-memories/core";
 
 // Load environment variables
 config();

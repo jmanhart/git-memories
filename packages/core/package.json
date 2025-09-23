@@ -1,0 +1,33 @@
+{
+  "name": "@git-memories/core",
+  "version": "1.0.7",
+  "description": "Shared business logic for git-memories CLI and web applications",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npx tsc --module CommonJS --target ES2022 --esModuleInterop --outDir dist src/index.ts",
+    "dev": "tsx src/index.ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "git",
+    "github",
+    "api",
+    "contributions",
+    "shared"
+  ],
+  "author": "John Manhart",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/node-fetch": "^2.6.9",
+    "tsx": "^4.6.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

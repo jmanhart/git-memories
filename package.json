@@ -1,16 +1,20 @@
 {
   "name": "git-memories",
   "version": "1.0.7",
-  "description": "A fun CLI tool to see your GitHub contributions on this day throughout the years",
-  "main": "dist/index.js",
-  "bin": {
-    "git-memories": "dist/index.js"
-  },
+  "description": "A fun CLI tool and web app to see your GitHub contributions on this day throughout the years",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "npx tsc --module CommonJS --target ES2022 --esModuleInterop --outDir dist src/index.ts",
-    "dev": "tsx src/index.ts",
-    "start": "node dist/index.js",
-    "prepare": "npm run build"
+    "build": "npm run build --workspaces",
+    "build:core": "npm run build --workspace=@git-memories/core",
+    "build:cli": "npm run build --workspace=@git-memories/cli",
+    "build:web": "npm run build --workspace=web",
+    "dev:cli": "npm run dev --workspace=@git-memories/cli",
+    "dev:web": "npm run dev --workspace=web",
+    "install:all": "npm install --workspaces",
+    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
   },
   "keywords": [
     "git",

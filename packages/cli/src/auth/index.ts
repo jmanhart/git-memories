@@ -5,12 +5,11 @@
  */
 
 import { intro, outro, spinner, confirm, isCancel } from "@clack/prompts";
-import { AuthResult, StoredToken } from "../types";
+import { AuthResult, StoredToken, AUTH_CONFIG } from "@git-memories/core";
 import { TokenStorage } from "./storage";
 import { OAuthAuth } from "./oauth";
 import { GitHubCLIAuth } from "./github-cli";
 import { ManualTokenAuth } from "./manual-token";
-import { AUTH_CONFIG } from "../utils/constants";
 import {
   captureException,
   captureMessage,
@@ -23,8 +22,8 @@ import {
   logWarn,
   logDebug,
   logFormatted,
-} from "../utils/sentry";
-import { logger } from "../utils/logger";
+  logger,
+} from "@git-memories/core";
 
 /**
  * Main authentication manager

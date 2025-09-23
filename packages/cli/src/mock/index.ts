@@ -4,11 +4,15 @@
  * Generates realistic mock data for testing the CLI without GitHub API calls
  */
 
-import { Contribution, GitHubCommit, GitHubPullRequest } from "../types";
-import { getCurrentDate } from "../utils/date";
+import {
+  Contribution,
+  GitHubCommit,
+  GitHubPullRequest,
+  getCurrentDate,
+  UI_STRINGS,
+} from "@git-memories/core";
 import { COMMIT_MESSAGES, PR_TITLES, REPO_NAMES, PR_STATES } from "./data";
 import { spinner } from "@clack/prompts";
-import { UI_STRINGS } from "../utils/constants";
 
 /**
  * Mock scenario types

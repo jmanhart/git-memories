@@ -7,7 +7,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
-import { StoredToken } from "../types";
+import { StoredToken } from "@git-memories/core";
 
 /**
  * Manages token storage in the user's home directory

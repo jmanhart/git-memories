@@ -1,12 +1,16 @@
 #!/usr/bin/env node
 
 import { intro, outro, spinner } from "@clack/prompts";
+import {
+  GitHubAPI,
+  getCurrentDate,
+  parseDateString,
+  EMOJIS,
+  UI_STRINGS,
+} from "@git-memories/core";
 import { GitHubAuth } from "./auth";
-import { GitHubAPI } from "./github";
 import { formatContributions } from "./formatters";
 import { generateMockContributions, MockScenario } from "./mock";
-import { getCurrentDate, parseDateString } from "./utils/date";
-import { EMOJIS, UI_STRINGS } from "./utils/constants";
 import {
   initSentry,
   captureException,
@@ -17,8 +21,8 @@ import {
   withTransaction,
   traceAuth,
   traceApiCall,
-} from "./utils/sentry";
-import { logger } from "./utils/logger";
+  logger,
+} from "@git-memories/core";
 
 // Initialize Sentry as early as possible
 initSentry();
@@ -116,14 +120,13 @@ async function main() {
       ? "no-entries"
       : "normal";
 
-    transaction.setTag("mode", mode);
-    transaction.setTag("hasCustomDate", !!customDate);
-    if (customDate) {
-      transaction.setTag(
-        "customDate",
-        `${customDate.year}-${customDate.month}-${customDate.day}`
-      );
-    }
+    transaction?.setAttributes({
+      mode,
+      hasCustomDate: !!customDate,
+      ...(customDate && {
+        customDate: `${customDate.year}-${customDate.month}-${customDate.day}`,
+      }),
+    });
 
     // Add breadcrumb for CLI start
     addBreadcrumb("CLI started", "cli", {
@@ -203,14 +206,18 @@ async function main() {
 
       // Trace authentication flow
       const { token, username } = await traceAuth("github", async (span) => {
-        span.setTag("auth_method", "github");
+        span?.setAttributes({
+          auth_method: "github",
+        });
         const result = await auth.authenticate();
-        span.setTag("username", result.username);
+        span?.setAttributes({
+          username: result.username,
+        });
         return result;
       });
 
       // Set user context for Sentry
-      setTag("username", username);
+      // setTag("username", username); // Disabled for now
       addBreadcrumb("Authentication successful", "auth", { username });
 
       // Show custom date message if provided
@@ -238,7 +245,7 @@ async function main() {
           "getUser",
           `https://api.github.com/users/${username}`,
           async (span) => {
-            span.setTag("username", username);
+            span?.setAttributes({ username });
             return await github.getUser(username);
           }
         );
@@ -250,11 +257,13 @@ async function main() {
           "getContributionsOnDate",
           `https://api.github.com/users/${username}/events`,
           async (span) => {
-            span.setTag("username", username);
-            span.setTag("month", month);
-            span.setTag("day", day);
-            span.setTag("accountCreatedYear", accountCreatedYear);
-            span.setTag("currentYear", currentYear);
+            span?.setAttributes({ username });
+            span?.setAttributes({
+              month,
+              day,
+              accountCreatedYear,
+              currentYear,
+            });
             return await github.getContributionsOnDate(
               username,
               month,

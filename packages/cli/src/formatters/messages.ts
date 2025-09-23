@@ -4,7 +4,7 @@
  * Collection of fun and encouraging messages for different scenarios
  */
 
-import { formatDateForDisplay } from "../utils/date";
+import { formatDateForDisplay } from "@git-memories/core";
 
 /**
  * Get a random fun message when no contributions are found

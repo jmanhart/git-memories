@@ -6,8 +6,7 @@
 
 import { exec } from "child_process";
 import { promisify } from "util";
-import { AuthResult } from "../types";
-import { logger } from "../utils/logger";
+import { AuthResult, logger } from "@git-memories/core";
 import {
   captureException,
   captureMessage,
@@ -21,7 +20,7 @@ import {
   logDebug,
   logFormatted,
   traceAuth,
-} from "../utils/sentry";
+} from "@git-memories/core";
 
 const execAsync = promisify(exec);
 

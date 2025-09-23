@@ -10,8 +10,7 @@ import { RepositoryAPI } from "./repositories";
 import { CommitAPI } from "./commits";
 import { PullRequestAPI } from "./pull-requests";
 import { Contribution } from "../types";
-import { spinner } from "@clack/prompts";
-import { UI_STRINGS } from "../utils/constants";
+// Note: spinner and UI_STRINGS are CLI-specific, removed for core package
 
 /**
  * Contributions API handler
@@ -49,9 +48,6 @@ export class ContributionsAPI {
     endYear: number
   ): Promise<Contribution[]> {
     const contributions: Contribution[] = [];
-    const s = spinner();
-
-    s.start(UI_STRINGS.FETCHING.START);
 
     try {
       // Strategy 1: Get user's repositories with creation/update dates (lightweight)
@@ -78,7 +74,7 @@ export class ContributionsAPI {
 
         if (activeRepos.length > 0) {
           // Update spinner to show current year being processed
-          s.message(UI_STRINGS.FETCHING.YEAR_PROGRESS(parseInt(year)));
+          // Processing year ${year}
 
           try {
             const yearContributions =
@@ -102,10 +98,8 @@ export class ContributionsAPI {
         }
       }
 
-      s.stop(UI_STRINGS.FETCHING.SUCCESS);
       return contributions;
     } catch (error) {
-      s.stop(UI_STRINGS.FETCHING.FAILED);
       throw error;
     }
   }

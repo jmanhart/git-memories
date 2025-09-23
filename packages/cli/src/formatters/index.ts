@@ -4,7 +4,7 @@
  * Main formatter interface for all output formatting
  */
 
-import { Contribution } from "../types";
+import { Contribution } from "@git-memories/core";
 import { formatContribution } from "./contribution";
 import {
   getNoContributionsMessage,

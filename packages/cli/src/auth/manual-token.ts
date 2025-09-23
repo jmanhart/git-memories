@@ -5,8 +5,7 @@
  */
 
 import { text, isCancel, outro } from "@clack/prompts";
-import { AuthResult } from "../types";
-import { validateGitHubToken } from "../utils/validation";
+import { AuthResult, validateGitHubToken } from "@git-memories/core";
 
 /**
  * Manual token authentication handler
