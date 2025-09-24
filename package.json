@@ -1,58 +1,29 @@
 {
   "name": "git-memories",
-  "version": "1.0.7",
-  "description": "A fun CLI tool and web app to see your GitHub contributions on this day throughout the years",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "version": "1.0.6",
+  "description": "A CLI tool to revisit your GitHub contributions on this day throughout the years",
   "scripts": {
-    "build": "npm run build --workspaces",
-    "build:core": "npm run build --workspace=@git-memories/core",
-    "build:cli": "npm run build --workspace=@git-memories/cli",
-    "build:web": "npm run build --workspace=web",
-    "dev:cli": "npm run dev --workspace=@git-memories/cli",
-    "dev:web": "npm run dev --workspace=web",
-    "install:all": "npm install --workspaces",
-    "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
+    "dev": "./dev.sh",
+    "dev:quick": "./dev-quick.sh",
+    "build": "npm run build:core && npm run build:web",
+    "build:core": "cd packages/core && npm run build",
+    "build:web": "cd packages/web && npm run build",
+    "start:backend": "cd packages/web/backend && npm start",
+    "start:web": "cd packages/web && npm run dev",
+    "install:all": "npm install && cd packages/core && npm install && cd ../web && npm install && cd backend && npm install",
+    "clean": "rm -rf packages/*/node_modules packages/*/dist node_modules"
   },
   "keywords": [
     "git",
     "github",
-    "cli",
     "contributions",
-    "memories",
-    "developer-tools",
-    "time-travel",
-    "history",
-    "nostalgia"
+    "cli",
+    "terminal",
+    "memories"
   ],
   "author": "John Manhart",
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jmanhart/git-memories"
-  },
-  "homepage": "https://github.com/jmanhart/git-memories",
-  "bugs": {
-    "url": "https://github.com/jmanhart/git-memories"
-  },
-  "dependencies": {
-    "@clack/prompts": "^0.7.0",
-    "@sentry/node": "^10.12.0",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "node-fetch": "^2.7.0",
-    "open": "^7.4.2"
-  },
-  "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/node": "^20.10.0",
-    "@types/node-fetch": "^2.6.9",
-    "tsx": "^4.6.0",
-    "typescript": "^5.3.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "workspaces": [
+    "packages/*"
+  ]
 }
