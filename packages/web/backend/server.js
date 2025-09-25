@@ -140,21 +140,36 @@ GitHub API Integration: Active`,
             contribution.commits.length > 0 ||
             contribution.pullRequests.length > 0
           ) {
-            output += `🗓️  ${contribution.year}\n`;
+            // Get current date for the year line
+            const currentDate = new Date();
+            const currentDateStr = currentDate.toLocaleDateString('en-US', { 
+              month: 'long', 
+              day: 'numeric' 
+            });
+            
+            output += `🗓️  ${contribution.year} - ${currentDateStr}\n`;
 
             if (contribution.commits.length > 0) {
               output += `  📝 Commits (${contribution.commits.length}):\n`;
               contribution.commits.forEach((commit) => {
+                // Show repository first, then commit message with link
+                output += `    📁 ${commit.repository.owner.login}/${commit.repository.name}\n`;
                 output += `    • ${commit.message}\n`;
-                output += `      📁 ${commit.repository.owner.login}/${commit.repository.name}\n`;
+                
+                // Add GitHub link to the commit (use the url field from the commit object)
+                output += `      🔗 ${commit.url}\n`;
               });
             }
 
             if (contribution.pullRequests.length > 0) {
               output += `  🔀 Pull Requests (${contribution.pullRequests.length}):\n`;
               contribution.pullRequests.forEach((pr) => {
+                // Show repository first, then PR title with link
+                output += `    📁 ${pr.repository.owner.login}/${pr.repository.name}\n`;
                 output += `    • ${pr.title} [${pr.state}]\n`;
-                output += `      📁 ${pr.repository.owner.login}/${pr.repository.name}\n`;
+                
+                // Add GitHub link to the PR (use the url field from the PR object)
+                output += `      🔗 ${pr.url}\n`;
               });
             }
             output += "\n";

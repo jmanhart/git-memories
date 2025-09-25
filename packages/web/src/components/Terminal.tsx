@@ -1,28 +1,79 @@
 import React, { useState, useRef, useEffect } from "react";
+import {
+  TerminalWindow,
+  TerminalContent,
+  TerminalLines,
+  TerminalInput,
+  type TerminalLineData,
+  type TerminalTheme,
+  type TerminalSize,
+} from "./terminal/index";
 
 /**
- * Terminal Line Interface
- * Defines the structure of each line in the terminal output
+ * Terminal Configuration Interface
+ * Defines the configuration options for the Terminal component
  */
-interface TerminalLine {
-  id: number; // Unique identifier for each line
-  content: string; // The actual text content
-  type: "input" | "output" | "error"; // Type of line (user input, response, or error)
-  prompt?: string; // Optional prompt symbol (like $ or >)
+export interface TerminalConfig {
+  /** Visual theme for the terminal */
+  theme?: TerminalTheme;
+
+  /** Size variant for the terminal */
+  size?: TerminalSize;
+
+  /** Whether to show line numbers */
+  showLineNumbers?: boolean;
+
+  /** Whether to show timestamps */
+  showTimestamps?: boolean;
+
+  /** Custom height for the terminal content */
+  customHeight?: string;
+
+  /** Whether to enable animations */
+  enableAnimations?: boolean;
 }
 
 /**
  * Interactive Terminal Component
  *
- * This component creates a fully functional terminal interface that:
+ * This component creates a fully functional terminal interface using modular components:
+ * - TerminalWindow: Provides outer container with theming
+ * - TerminalContent: Handles scrollable content area
+ * - TerminalLines: Renders all terminal lines
+ * - TerminalInput: Manages current input field
+ *
+ * Features:
  * - Displays a welcome message when first loaded
  * - Accepts user input via keyboard
  * - Sends commands to the backend API
  * - Displays real GitHub data responses
  * - Handles errors gracefully
  * - Auto-scrolls and focuses for smooth UX
+ * - Modular, customizable styling
+ * - Theme and size variants
+ *
+ * @example
+ * ```jsx
+ * // Basic usage
+ * <Terminal />
+ *
+ * // With custom configuration
+ * <Terminal
+ *   theme="retro"
+ *   size="xl"
+ *   showLineNumbers={true}
+ *   enableAnimations={true}
+ * />
+ * ```
  */
-export const Terminal: React.FC = () => {
+export const Terminal: React.FC<TerminalConfig> = ({
+  theme = "dark",
+  size = "lg",
+  showLineNumbers = false,
+  showTimestamps = false,
+  customHeight,
+  enableAnimations = false,
+}) => {
   // ===== STATE MANAGEMENT =====
 
   /**
@@ -30,23 +81,7 @@ export const Terminal: React.FC = () => {
    * Stores all the lines that appear in the terminal
    * Each line has an ID, content, and type (input/output/error)
    */
-  const [lines, setLines] = useState<TerminalLine[]>([
-    {
-      id: 1,
-      content: "Welcome to Fart Palace", // Welcome message
-      type: "output",
-    },
-    {
-      id: 2,
-      content: "🚀 Real GitHub API Integration Active", // Status indicator
-      type: "output",
-    },
-    {
-      id: 3,
-      content: "Try: user octocat, memories octocat, help", // Example commands
-      type: "output",
-    },
-  ]);
+  const [lines, setLines] = useState<TerminalLineData[]>([]);
 
   /**
    * Current Input State
@@ -69,10 +104,10 @@ export const Terminal: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   /**
-   * Terminal Reference
+   * Terminal Content Reference
    * Used to control scrolling behavior
    */
-  const terminalRef = useRef<HTMLDivElement>(null);
+  const terminalContentRef = useRef<HTMLDivElement>(null);
 
   // ===== EFFECTS =====
 
@@ -86,23 +121,31 @@ export const Terminal: React.FC = () => {
     if (inputRef.current) {
       inputRef.current.focus(); // Focus the input field
     }
-    if (terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight; // Scroll to bottom
+    if (terminalContentRef.current) {
+      terminalContentRef.current.scrollTop =
+        terminalContentRef.current.scrollHeight; // Scroll to bottom
     }
   }, [lines]); // Run when lines change
 
   // ===== EVENT HANDLERS =====
 
   /**
-   * Keyboard Event Handler
-   * Handles Enter key press to execute commands
-   * Prevents submission if already processing a command
+   * Handle Enter Key Press
+   * Executes the current command when Enter is pressed
    */
-  const handleKeyPress = async (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !isProcessing) {
-      // Only execute if Enter pressed and not processing
-      e.preventDefault(); // Prevent form submission
-      await executeCommand(currentInput.trim()); // Execute the command
+  const handleEnter = async () => {
+    if (!isProcessing && currentInput.trim()) {
+      await executeCommand(currentInput.trim());
+    }
+  };
+
+  /**
+   * Handle Terminal Content Click
+   * Focuses the input field when terminal is clicked
+   */
+  const handleTerminalClick = () => {
+    if (inputRef.current) {
+      inputRef.current.focus();
     }
   };
 
@@ -124,15 +167,14 @@ export const Terminal: React.FC = () => {
 
     // ===== STEP 1: ADD COMMAND TO TERMINAL DISPLAY =====
     // Add the user's command to the terminal history
-    const newLines = [
-      ...lines, // Keep existing lines
-      {
-        id: lines.length + 1, // Generate unique ID
-        content: command, // The actual command text
-        type: "input" as const, // Mark as user input
-        prompt: "$ ", // Show terminal prompt
-      },
-    ];
+    const commandLine: TerminalLineData = {
+      id: lines.length + 1, // Generate unique ID
+      content: command, // The actual command text
+      type: "input", // Mark as user input
+      prompt: "$ ", // Show terminal prompt
+    };
+
+    const newLines = [...lines, commandLine]; // Keep existing lines and add new command
 
     setLines(newLines); // Update terminal display
     setCurrentInput(""); // Clear input field
@@ -159,15 +201,14 @@ export const Terminal: React.FC = () => {
 
       const result = await response.json();
 
-      setLines((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          content: result.output,
-          type: result.type || "output",
-        },
-      ]);
-    } catch (error) {
+      const responseLine: TerminalLineData = {
+        id: newLines.length + 1,
+        content: result.output,
+        type: result.type || "output",
+      };
+
+      setLines((prev) => [...prev, responseLine]);
+    } catch {
       // Fallback to local commands if backend is not available
       console.log("Backend not available, using fallback commands");
 
@@ -227,100 +268,45 @@ Type 'help' for more information.`;
           outputType = "error";
       }
 
-      setLines((prev) => [
-        ...prev,
-        {
-          id: prev.length + 1,
-          content: output,
-          type: outputType,
-        },
-      ]);
+      const fallbackLine: TerminalLineData = {
+        id: newLines.length + 1,
+        content: output,
+        type: outputType,
+      };
+
+      setLines((prev) => [...prev, fallbackLine]);
     }
 
     setIsProcessing(false);
   };
 
-  const handleTerminalClick = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-  };
+  // ===== RENDER =====
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-gray-900 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
-        {/* Terminal Header */}
-        <div className="bg-gray-800 px-4 py-2 flex items-center justify-between border-b border-gray-700">
-          <div className="flex items-center space-x-2">
-            <div className="flex space-x-1">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-            <div className="text-gray-400 text-xs font-mono ml-4">
-              Git Memories Terminal
-            </div>
-          </div>
-          <div className="text-gray-400 text-xs font-mono">
-            Interactive Mode
-          </div>
-        </div>
+    <TerminalWindow theme={theme} size={size}>
+      <TerminalContent
+        ref={terminalContentRef}
+        customHeight={customHeight}
+        onClick={handleTerminalClick}
+      >
+        <TerminalLines
+          lines={lines}
+          showLineNumbers={showLineNumbers}
+          showTimestamps={showTimestamps}
+          enableAnimations={enableAnimations}
+        />
 
-        {/* Terminal Content */}
-        <div
-          ref={terminalRef}
-          className="p-4 font-mono text-sm h-96 overflow-y-auto bg-gray-900 cursor-text"
-          onClick={handleTerminalClick}
-        >
-          {lines.map((line) => (
-            <div key={line.id} className="mb-1">
-              {line.type === "input" && (
-                <div className="flex items-center">
-                  <span className="text-green-400 mr-2">{line.prompt}</span>
-                  <span className="text-gray-300">{line.content}</span>
-                </div>
-              )}
-              {line.type === "output" && (
-                <div className="text-gray-300 whitespace-pre-line text-left ml-0 pl-0">
-                  {line.content}
-                </div>
-              )}
-              {line.type === "error" && (
-                <div className="text-red-400 whitespace-pre-line text-left ml-0 pl-0">
-                  {line.content}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Current Input Line */}
-          <div className="flex items-center mt-2">
-            <span className="text-green-400 mr-2">$ </span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1 bg-transparent text-gray-300 outline-none font-mono"
-              placeholder={isProcessing ? "Processing..." : ""}
-              disabled={isProcessing}
-              autoComplete="off"
-              spellCheck="false"
-            />
-            {isProcessing && (
-              <span className="text-yellow-400 ml-2 animate-pulse">▊</span>
-            )}
-          </div>
-        </div>
-
-        {/* Terminal Footer */}
-        <div className="bg-gray-800 px-4 py-2 border-t border-gray-700">
-          <div className="text-gray-400 text-xs font-mono">
-            Type 'help' for available commands • Press Enter to execute
-          </div>
-        </div>
-      </div>
-    </div>
+        <TerminalInput
+          ref={inputRef}
+          value={currentInput}
+          onChange={setCurrentInput}
+          onEnter={handleEnter}
+          disabled={isProcessing}
+          isProcessing={isProcessing}
+          placeholder={isProcessing ? "Processing..." : ""}
+          showCursor={!isProcessing}
+        />
+      </TerminalContent>
+    </TerminalWindow>
   );
 };

@@ -23,18 +23,6 @@ export const InstallationSection: React.FC = () => {
           </h3>
           <div className="relative">
             <div className="bg-gray-900 rounded-lg border border-gray-700 shadow-lg overflow-hidden">
-              {/* Terminal Header */}
-              <div className="bg-gray-800 px-4 py-2 flex items-center space-x-2 border-b border-gray-700">
-                <div className="flex space-x-1">
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                </div>
-                <div className="text-gray-400 text-xs font-mono ml-4">
-                  Terminal
-                </div>
-              </div>
-
               {/* Terminal Content */}
               <div className="p-4 font-mono text-sm">
                 <div className="flex items-center justify-between">
