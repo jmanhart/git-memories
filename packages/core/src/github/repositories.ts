@@ -63,14 +63,9 @@ export class RepositoryAPI {
         // Check if repo was created before or during this year
         const wasCreatedBefore = repo.createdYear <= year;
 
-        // Check if repo was updated during or after this year
-        const wasUpdatedAfter = repo.updatedYear >= year;
-
-        // Check if repo was pushed to during or after this year
-        const wasPushedAfter = repo.pushedYear >= year;
-
-        // Repo was potentially active if it existed and had recent activity
-        return wasCreatedBefore && (wasUpdatedAfter || wasPushedAfter);
+        // More inclusive: include repos that existed during this year
+        // regardless of when they were last updated
+        return wasCreatedBefore;
       });
 
       if (activeRepos.length > 0) {

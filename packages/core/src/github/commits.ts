@@ -71,10 +71,19 @@ export class CommitAPI {
         );
         commits.push(...repoCommits);
 
-        // Small delay to avoid rate limiting
+        // Increased delay to avoid rate limiting
         await this.client.delay();
       } catch (error) {
-        console.warn(`Failed to check commits for ${repo.name}:`, error);
+        // Handle different types of errors more gracefully
+        if (error instanceof Error && error.message.includes("409 Conflict")) {
+          console.warn(
+            `Repository ${repo.name} is unavailable (409 Conflict) - skipping`
+          );
+        } else if (error instanceof Error && error.message.includes("404")) {
+          console.warn(`Repository ${repo.name} not found (404) - skipping`);
+        } else {
+          console.warn(`Failed to check commits for ${repo.name}:`, error);
+        }
       }
     }
 

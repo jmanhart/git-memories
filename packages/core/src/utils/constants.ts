@@ -16,8 +16,8 @@ export const GITHUB_CONFIG = {
   OAUTH_BASE_URL: "https://github.com/login/oauth",
   GRAPHQL_ENDPOINT: "https://api.github.com/graphql",
   DEFAULT_PER_PAGE: 100,
-  MAX_REPOS_PER_YEAR: 10,
-  API_DELAY_MS: 50,
+  MAX_REPOS_PER_YEAR: 25, // Increased from 10 to 25 for more comprehensive results
+  API_DELAY_MS: 100, // Increased delay to reduce rate limiting
 } as const;
 
 export const AUTH_CONFIG = {

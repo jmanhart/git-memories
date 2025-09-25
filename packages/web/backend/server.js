@@ -108,14 +108,14 @@ GitHub API Integration: Active`,
           const date = new Date(args[1]);
           month = date.getMonth() + 1;
           day = date.getDate();
-          startYear = 2020;
+          startYear = 2015;
           endYear = new Date().getFullYear();
         } else {
           // Use today's date
           const today = new Date();
           month = today.getMonth() + 1;
           day = today.getDate();
-          startYear = 2020;
+          startYear = 2015;
           endYear = today.getFullYear();
         }
 
@@ -142,11 +142,11 @@ GitHub API Integration: Active`,
           ) {
             // Get current date for the year line
             const currentDate = new Date();
-            const currentDateStr = currentDate.toLocaleDateString('en-US', { 
-              month: 'long', 
-              day: 'numeric' 
+            const currentDateStr = currentDate.toLocaleDateString("en-US", {
+              month: "long",
+              day: "numeric",
             });
-            
+
             output += `🗓️  ${contribution.year} - ${currentDateStr}\n`;
 
             if (contribution.commits.length > 0) {
@@ -155,7 +155,7 @@ GitHub API Integration: Active`,
                 // Show repository first, then commit message with link
                 output += `    📁 ${commit.repository.owner.login}/${commit.repository.name}\n`;
                 output += `    • ${commit.message}\n`;
-                
+
                 // Add GitHub link to the commit (use the url field from the commit object)
                 output += `      🔗 ${commit.url}\n`;
               });
@@ -167,7 +167,7 @@ GitHub API Integration: Active`,
                 // Show repository first, then PR title with link
                 output += `    📁 ${pr.repository.owner.login}/${pr.repository.name}\n`;
                 output += `    • ${pr.title} [${pr.state}]\n`;
-                
+
                 // Add GitHub link to the PR (use the url field from the PR object)
                 output += `      🔗 ${pr.url}\n`;
               });
