@@ -43,6 +43,11 @@ export class CommitAPI {
         },
       },
       pushedDate: commit.commit.author.date,
+      stats: {
+        additions: commit.stats?.additions || 0,
+        deletions: commit.stats?.deletions || 0,
+        total: commit.stats?.total || 0,
+      },
     }));
   }
 

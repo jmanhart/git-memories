@@ -178,7 +178,16 @@ GitHub API Integration: Active`,
                     minute: "2-digit",
                     hour12: true,
                   });
-                  output += `      • ${commit.message} (${timeStr})\n`;
+                  // Add stats if available
+                  let statsStr = "";
+                  if (commit.stats && commit.stats.total > 0) {
+                    statsStr = ` (+${commit.stats.additions} -${commit.stats.deletions})`;
+                    console.log(`Stats for commit: ${commit.message} - +${commit.stats.additions} -${commit.stats.deletions}`);
+                  } else {
+                    console.log(`No stats for commit: ${commit.message}`, commit.stats);
+                  }
+
+                  output += `      • ${commit.message} (${timeStr})${statsStr}\n`;
                   output += `        🔗 ${commit.url}\n`;
                 });
               });

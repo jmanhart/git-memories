@@ -33,6 +33,11 @@ export interface GitHubCommit {
     };
   };
   pushedDate: string;
+  stats: {
+    additions: number;
+    deletions: number;
+    total: number;
+  };
 }
 
 export interface GitHubPullRequest {

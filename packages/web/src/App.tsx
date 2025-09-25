@@ -1,14 +1,18 @@
 import "./App.css";
-import { Layout, Header, InstallationSection, Terminal } from "./components";
+import {
+  Layout,
+  Header,
+  InstallationSection,
+  Terminal,
+  GitHubLookup,
+  GitHubSearch,
+} from "./components";
 
 function App() {
   return (
     <Layout>
       <Header />
-      <InstallationSection />
-      <div className="mt-8">
-        <Terminal />
-      </div>
+      <GitHubSearch />
     </Layout>
   );
 }
