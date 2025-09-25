@@ -151,25 +151,71 @@ GitHub API Integration: Active`,
 
             if (contribution.commits.length > 0) {
               output += `  📝 Commits (${contribution.commits.length}):\n`;
-              contribution.commits.forEach((commit) => {
-                // Show repository first, then commit message with link
-                output += `    📁 ${commit.repository.owner.login}/${commit.repository.name}\n`;
-                output += `    • ${commit.message}\n`;
 
-                // Add GitHub link to the commit (use the url field from the commit object)
-                output += `      🔗 ${commit.url}\n`;
+              // Group commits by repository
+              const commitsByRepo = {};
+              contribution.commits.forEach((commit) => {
+                const repoKey = `${commit.repository.owner.login}/${commit.repository.name}`;
+                if (!commitsByRepo[repoKey]) {
+                  commitsByRepo[repoKey] = [];
+                }
+                commitsByRepo[repoKey].push(commit);
+              });
+
+              // Sort commits by date (newest first) and group by repository
+              Object.keys(commitsByRepo).forEach((repoKey) => {
+                const commits = commitsByRepo[repoKey];
+                // Sort commits by pushedDate (newest first)
+                commits.sort(
+                  (a, b) => new Date(b.pushedDate) - new Date(a.pushedDate)
+                );
+
+                output += `    📁 ${repoKey}\n`;
+                commits.forEach((commit) => {
+                  const commitDate = new Date(commit.pushedDate);
+                  const timeStr = commitDate.toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  output += `      • ${commit.message} (${timeStr})\n`;
+                  output += `        🔗 ${commit.url}\n`;
+                });
               });
             }
 
             if (contribution.pullRequests.length > 0) {
               output += `  🔀 Pull Requests (${contribution.pullRequests.length}):\n`;
-              contribution.pullRequests.forEach((pr) => {
-                // Show repository first, then PR title with link
-                output += `    📁 ${pr.repository.owner.login}/${pr.repository.name}\n`;
-                output += `    • ${pr.title} [${pr.state}]\n`;
 
-                // Add GitHub link to the PR (use the url field from the PR object)
-                output += `      🔗 ${pr.url}\n`;
+              // Group pull requests by repository
+              const prsByRepo = {};
+              contribution.pullRequests.forEach((pr) => {
+                const repoKey = `${pr.repository.owner.login}/${pr.repository.name}`;
+                if (!prsByRepo[repoKey]) {
+                  prsByRepo[repoKey] = [];
+                }
+                prsByRepo[repoKey].push(pr);
+              });
+
+              // Sort PRs by date (newest first) and group by repository
+              Object.keys(prsByRepo).forEach((repoKey) => {
+                const prs = prsByRepo[repoKey];
+                // Sort PRs by createdAt (newest first)
+                prs.sort(
+                  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+                );
+
+                output += `    📁 ${repoKey}\n`;
+                prs.forEach((pr) => {
+                  const prDate = new Date(pr.createdAt);
+                  const timeStr = prDate.toLocaleTimeString("en-US", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  output += `      • ${pr.title} [${pr.state}] (${timeStr})\n`;
+                  output += `        🔗 ${pr.url}\n`;
+                });
               });
             }
             output += "\n";
